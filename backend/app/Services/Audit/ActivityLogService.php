@@ -17,11 +17,12 @@ use InvalidArgumentException;
 
 class ActivityLogService
 {
-    public const MODULES = ['products' => 'Productos', 'variants' => 'Variantes', 'categories' => 'Categorías', 'images' => 'Imágenes', 'orders' => 'Pedidos', 'sections' => 'Página de inicio', 'banners' => 'Banners', 'settings' => 'Configuración'];
+    public const MODULES = ['products' => 'Productos', 'variants' => 'Variantes', 'categories' => 'Categorías', 'images' => 'Imágenes', 'orders' => 'Pedidos', 'sections' => 'Página de inicio', 'banners' => 'Banners', 'settings' => 'Configuración', 'sync' => 'Sincronización comercial'];
 
     public const ACTIONS = ['created' => 'Creación', 'updated' => 'Modificación', 'categories' => 'Categorías asignadas', 'uploaded' => 'Imagen subida', 'deleted' => 'Imagen eliminada', 'primary' => 'Imagen principal', 'reordered' => 'Orden actualizado', 'status' => 'Cambio de estado', 'visibility' => 'Visibilidad', 'image' => 'Cambio de imagen', 'denied' => 'Operación rechazada'];
 
     public const FIELDS = [
+        'sync' => ['created_count', 'updated_count', 'skipped_count', 'error_count'],
         'products' => ['sku', 'name', 'slug', 'short_description', 'description', 'product_type', 'sale_unit', 'purchase_mode', 'price', 'stock', 'status', 'featured', 'category_ids'],
         'variants' => ['product_id', 'sku', 'name', 'value', 'sale_unit', 'purchase_mode', 'price', 'stock', 'active'],
         'categories' => ['parent_id', 'name', 'slug', 'description', 'image_path', 'active', 'featured', 'sort_order'],

@@ -1,0 +1,8 @@
+[
+  {"sku":"00123","kind":"product","price_cents":10001,"stock":"1.125"},
+  {"sku":"NEW-001","kind":"product","name":"Artículo ficticio nuevo","sale_unit":"unit","price_cents":250050,"stock":"10.000"},
+  {"sku":"DUP-001","kind":"product","price_cents":100},
+  {"sku":" DUP-001 ","kind":"product","price_cents":200},
+  {"sku":"VAR-001","kind":"variant","price_cents":30099,"stock":"2.500"},
+  {"sku":"INVALID-001","kind":"product","price_cents":-1}
+]

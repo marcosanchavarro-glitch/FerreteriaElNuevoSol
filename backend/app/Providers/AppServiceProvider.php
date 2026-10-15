@@ -69,6 +69,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Banner::class, ContentPolicy::class);
         Gate::define('view-activity', fn (User $user): bool => $user->active && $user->role === UserRole::Admin);
         Gate::define('manage-settings', fn (User $user): bool => $user->active && $user->role === UserRole::Admin);
+        Gate::define('manage-commercial-sync', fn (User $user): bool => $user->active && $user->role === UserRole::Admin);
         Gate::define('manage-roles', fn (User $user): bool => $user->active && $user->role === UserRole::Admin);
         RateLimiter::for('authentication', fn (Request $request) => Limit::perMinute(20)->by($request->ip()));
         RateLimiter::for('registration', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));

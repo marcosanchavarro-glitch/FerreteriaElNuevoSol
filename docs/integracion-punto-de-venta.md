@@ -1,133 +1,56 @@
-# Integración Punto de Venta → El Nuevo Sol
+# Sincronización comercial por SKU — Fase 18
 
-Fecha de relevamiento: 8 de octubre de 2026.
+Motor interno implementado; conexión real con **Soluciones Es pendiente**. Solo está confirmado el uso del SKU como correspondencia. No se modificó Render, Access ni WooCommerce.
 
-**18.A: inspección y preparación local realizadas; relevamiento externo pendiente de documentación. Mecanismo: NO CONFIRMADO. 18.B: no ejecutada, bloqueada por falta de contrato técnico confirmado y entorno de prueba autorizado. La Fase 18 completa no está terminada.**
+## Uso
 
-## Evidencia y alcance
+Admin → **Sincronización comercial** (`/admin/commercial-sync`). Subir JSON → **Previsualizar sin modificar productos** → revisar filas → marcar confirmación → **Confirmar importación**. Seller y Customer no tienen acceso; el servicio también valida autorización.
 
-El usuario identifica al proveedor como **«Soluciones Es»**. El documento de esta fase describe el programa como basado en Microsoft Access, con conectividad en la nube y algún vínculo con WooCommerce. Estos últimos datos son antecedentes aportados, no comprobaciones técnicas: no se dispone de versión, manual, contrato de interfaz ni muestra real.
+La vista previa guarda un `SyncRun`, nunca modifica productos ni variantes. Vence a los 30 minutos, pertenece al Admin que la generó y se confirma una sola vez. Se compara nuevamente el catálogo antes de aplicar: si cambió, hay que generar otra vista previa. Las importaciones se serializan mediante el bloqueo de caché existente y usan transacción y bloqueo de filas. Un fallo durante la aplicación revierte todos los cambios comerciales y su auditoría.
 
-La búsqueda pública por el nombre y por Access/WooCommerce no permitió identificar de forma inequívoca al proveedor y al producto instalado. Se encontró un sitio de nombre similar, [ES Soluciones](https://essoluciones.com.ar/), cuyo resultado indexado describe soluciones para hospitalidad; **no se confirmó que sea el proveedor de esta ferretería**. La página no pudo recuperarse durante la consulta. No se toma como evidencia del protocolo ni se eligió un conector por coincidencia de nombre.
+## SKU
 
-Se revisaron modelos, casts, políticas, Form Requests, servicios, rutas, migraciones, pruebas y referencia WordPress local. No se encontraron adaptadores de catálogo externo, trabajos de sincronización, comandos de importación ni programación de sincronizaciones. `SyncRun` y `SyncRunStatus` son estructuras de datos, no un motor. Las llamadas Eloquent `sync()` de categorías/notificaciones son asociaciones internas. El frontend WordPress recibido no aporta un conector técnico con Punto de Venta; coincide con lo documentado en `fase-1-frontend.md`.
+Texto ASCII de 1 a 255 caracteres: letras, números, punto, guion, barra y guion bajo; debe comenzar con letra o número. Solo se recortan espacios ASCII exteriores. Se conservan ceros iniciales, mayúsculas y minúsculas; `abc` y `ABC` son distintos. No se reescriben SKU existentes ni se buscan nombres similares.
 
-No se accedió a Access, al sistema comercial, a una tienda WooCommerce real ni a paneles privados. No se solicitaron ni utilizaron credenciales. No se contactó al proveedor en nombre del usuario.
+Se busca en productos y variantes conjuntamente. Si hay varios candidatos, incluso tras recortar espacios, se registra conflicto. Todos los duplicados del archivo se omiten, aunque uno tenga otros campos inválidos. Los IDs internos y `external_id` no se sustituyen por el SKU.
 
-## Verificación del estado real
+## Contrato JSON de prueba
 
-- Fase 17 comprobada: `ActivityLogService`, modelo, migración complementaria, rutas exclusivas de Admin, vistas y pruebas de auditoría presentes.
-- Suite completa ejecutada antes de modificar documentación: **388 pruebas y 2130 aserciones, todas aprobadas**.
-- El repositorio conserva archivos sin seguimiento; no se creó commit ni se descartaron cambios.
-- No se modificó código ejecutable, datos comerciales, configuración o esquema en esta etapa. No se crearon pruebas de un proveedor hipotético.
-- PHPUnit se ejecutó fuera del sandbox por el problema de lectura de archivos ya identificado. Persisten advertencias del entorno Windows sobre las extensiones curl/intl; no impidieron esta suite. Antes de elegir un transporte habrá que verificar sus requisitos de ejecución.
+Lista de 1–100 registros, máximo 256 KB. Solo archivo `.json`, sin dependencias ni segundo importador.
 
-## Datos internos existentes versus datos externos disponibles
+```json
+[
+  {"sku":"00123","kind":"product","price_cents":10001,"stock":"1.125"},
+  {"sku":"NUEVO-01","kind":"product","name":"Artículo ficticio","sale_unit":"unit","price_cents":250050},
+  {"sku":"VAR-01","kind":"variant","stock":"2.500"}
+]
+```
 
-**Ningún campo del proveedor está técnicamente confirmado aún.** La existencia de un campo en Laravel no demuestra que Punto de Venta lo entregue.
+- `sku` y `kind` (`product` o `variant`) obligatorios. Debe venir al menos `price_cents` o `stock`.
+- `price_cents`: entero JSON no negativo, hasta 999999999999999, **ya normalizado** como precio público Lista 1 en centavos de la moneda de la tienda. Rechaza floats, strings y null. No convierte moneda ni IVA.
+- `stock`: string decimal no negativo, punto decimal, hasta 12 enteros y 3 decimales. Rechaza números JSON, coma, negativos, null y exceso de precisión. Se conserva exactamente mediante el cast existente.
+- Campo comercial ausente: se conserva. Cero es válido. No se interpretan vacíos como cero.
+- `name`: obligatorio solo para altas; en existentes no reemplaza el nombre web.
+- `sale_unit`: obligatoria para nuevos productos; valores del enum existente (`unit`, `meter`, `kilogram`, `gram`, `liter`, `milliliter`, `box`, `package`, `bundle`, `roll`, `other`). En existentes, si se informa debe coincidir. Nunca se convierte la unidad.
+- Nuevas variantes: `name` y `parent_sku` de un único producto variable **ya existente**. Sin unidad explícita heredan la del padre. No se cambia de padre una variante existente. No se crean padres variables a partir de suposiciones.
+- Campos desconocidos invalidan la fila y no se almacenan en el historial.
 
-| Dato | Soporte actual en Laravel | Confirmación externa pendiente |
-|---|---|---|
-| Identificador | Product y ProductVariant.external_id, texto nullable e indexado | Estabilidad, unicidad, alcance por empresa/sucursal/padre y posible reciclaje |
-| Código comercial | sku nullable e indexado | Duplicados, ceros iniciales, cambios, ausencias y equivalencia con ID |
-| Nombre | name obligatorio; variantes con name/value | Nombre comercial versus nombre web y presentación |
-| Precio Lista 1 | price como entero de centavos, nullable | Campo exacto de Lista 1, moneda, IVA, descuentos, escala y redondeo |
-| Stock | Entero de milésimas en SQLite; string decimal en PHP | Stock físico/disponible/reservado, depósito, negativos, nulidad y precisión |
-| Unidades | Enum: unidad, metro, kilogramo, gramo, litro, mililitro, caja, paquete, bulto, rollo y otra | Códigos reales, fraccionamiento y factores de conversión |
-| Variantes | product_id, external_id, sku, price, stock, active; unidad/modalidad opcional heredada | Relación padre-hijo, IDs y significado comercial de active |
-| Estado comercial | No hay campo separado en Product; status es publicación web | Cómo separar baja/discontinuación de visibilidad editorial |
-| Marca/categorías/fotos/descripciones | Categorías, fotos y textos web existentes; marca sin campo dedicado en Product | Disponibilidad real; no autorizan sobrescritura editorial |
-| Sincronización | external_synced_at nullable | Fecha de origen, zona horaria, versión/cursor y semántica de última sincronización |
+Archivo ficticio: [sync-demo.json](sync-demo.json). Para probar todas sus ramas, usar un catálogo de prueba con producto `00123` y variante `VAR-001`; las pruebas automatizadas crean esos registros con factories. No modifica automáticamente las bases locales ni la demo remota. Sin esos registros, la vista previa muestra los conflictos correspondientes.
 
-### Identidad y duplicados
+## Cambios y protección
 
-Los índices de external_id y sku **no son únicos** en ambas tablas. Slug sí es único. La validación de SKU de variantes locales limita duplicados dentro del mismo producto; esto no define la identidad externa.
+Solo se actualizan precio y stock suministrados y se marca `external_synced_at` para activar las restricciones comerciales existentes. Primera adopción con valores iguales también se registra como actualización; repeticiones posteriores no cambian valores ni timestamps.
 
-Política propuesta para 18.B, pendiente del contrato: conservar IDs como texto, no normalizar ceros ni fusionar por nombre; usar external_id solo cuando sea fiable y con su alcance confirmado. SKU duplicado/ausente o varios candidatos deben generar conflicto y detener ese registro. No vincular automáticamente un producto local por coincidencia de nombre o SKU ambiguo. Evaluar una restricción única con ámbito correcto tras revisar duplicados existentes y el contrato; no agregarla ahora.
+Altas de productos: simples, borrador, no destacados y compra a confirmar. Altas de variantes: inactivas y compra a confirmar. No se publica automáticamente ni se infiere modalidad comercial.
 
-### Dinero y cantidades
+Se conservan descripciones, nombres existentes, imágenes, categorías, publicación, destacados, unidades existentes, SEO, banners, CMS y configuración. No se eliminan registros ni se modifican snapshots de pedidos anteriores.
 
-`MinorUnits` admite centavos enteros no negativos (hasta 15 dígitos), rechaza floats y conserva null como desconocido. `ProductDisplay::toMinorUnits()` supone una cadena previamente validada y hasta dos decimales; **no es un parser de cualquier respuesta externa**. No usarlo sobre datos del proveedor sin validar formato, moneda, impuestos y escala. Ejemplo interno: 2500,51 pesos → 250051 centavos; no afirma la unidad enviada por el proveedor.
+## Conflictos e historial
 
-`ScaledQuantity` admite strings con hasta 12 dígitos enteros y tres decimales, incluso negativos; SQLite guarda milésimas. Los formularios comerciales locales son más restrictivos y no admiten stock negativo. Null, cero y dato ausente deben distinguirse. No convertir kilos a envases, litros a unidades ni descartar decimales sin una regla confirmada.
+Cada fila muestra alta, actualización, sin cambios, inválido o conflicto. Conflictos e inválidos se omiten; la confirmación aplica únicamente las filas válidas mostradas. Un error operativo revierte la transacción completa.
 
-Un producto variable no admite precio/stock en el padre: viven en variantes. Un padre con variantes no puede convertirse sin más en producto simple. Las importaciones tendrán que respetar estas invariantes y los snapshots de pedidos existentes.
+Se reutiliza `SyncRun`: origen fijo `normalized_json_test`, fecha, resultado y contadores. `error_details` conserva modo, filas, conflictos, cantidad omitida y referencia a la vista previa; no incluye archivos originales, credenciales ni mensajes crudos del proveedor. Se reutiliza `ActivityLogService` para cambios por producto/variante y resumen de sincronización con el Admin responsable. No se creó otro sistema de auditoría ni migraciones.
 
-## Propiedad de datos y protección actual
+## Adaptador real pendiente
 
-| Propietario | Datos y regla |
-|---|---|
-| Punto de Venta, al confirmar integración | Código comercial, precio público Lista 1, stock y variantes comerciales sincronizadas |
-| Web | Imágenes, descripciones, categorías asignadas, slug, visibilidad/publicación, destacados, contenido SEO que exista, banners y CMS |
-| Por acordar expresamente | Nombre comercial/web, unidad, cambio de tipo simple/variable y separación del estado comercial |
-
-`Product::isExternallyManaged()` protege si existe external_id **o** external_synced_at. ProductPolicy impide editar identidad comercial externa incluso a Admin; solo Admin modifica importes/SKU de productos locales. ProductRequest rechaza inyectar los marcadores externos. El contenido editorial del padre permanece editable.
-
-Una variante se considera externa también cuando lo es su padre. ProductVariantPolicy bloquea su modificación y la creación manual bajo un padre externo, además de la eliminación. Las Policies gobiernan las rutas de usuario: no protegen por sí solas un proceso de consola o asignación masiva Eloquent. El futuro motor deberá usar una allowlist comercial explícita y nunca `fill()` con el payload completo.
-
-Product.status representa borrador/publicado/privado y no debe usarse como sustituto automático de una baja comercial. La posible necesidad de un estado comercial separado se decidirá con muestras del proveedor. No se crea un campo ni se cambia el comportamiento ahora. Nuevos productos: propuesta de borrador hasta revisión; productos/variantes ausentes: conflicto o revisión, nunca eliminación automática.
-
-## Mecanismo y autenticación: pendientes
-
-| Hipótesis a investigar | Evidencia necesaria | Estado |
-|---|---|---|
-| WooCommerce REST API | Manual del proveedor, versión, configuración y mapeo real | No confirmado |
-| Plugin/conector específico | Nombre, versión, autor, manual y configuración sin secretos | No confirmado |
-| Servicio intermediario/nube | Operador, contrato de lectura, alcance y autorización | No confirmado |
-| Exportación de archivos | Archivo anonimizado, esquema, codificación, delimitador, periodicidad e integridad | No confirmado |
-| Acceso a base | Procedimiento soportado, copia de prueba y permiso explícito de lectura | No confirmado; no abrir Access ni escribir directamente |
-| Aplicación local/protocolo propietario | Nombre/versiones, documentación, formato y requisitos de ejecución | No confirmado |
-
-Flujo deseado: **Punto de Venta → web**, posiblemente a través de un intermediario aún desconocido. Flujo real actual, autenticación, permisos, frecuencia, formatos, IDs, límites, paginación, gestión de errores y conectividad siguen sin confirmar. No se asume API REST, acceso directo a Access ni que WooCommerce pueda quitarse.
-
-## Arquitectura propuesta, sin implementar
-
-Una vez confirmado el mecanismo: adaptador de lectura específico → normalización validada → previsualización/conflictos → confirmación Admin → servicio comercial transaccional → SyncRun y ActivityLogService. Es un diseño propuesto, no clases ni endpoints creados.
-
-1. Obtener una muestra autorizada y anonimizada; conservar la semántica de números e identificadores.
-2. Resolver y validar IDs, unidades, Lista 1, stock y relaciones antes de cualquier escritura.
-3. Presentar nuevos, existentes, diferencias, conflictos y rechazados. No convertir respuestas incompletas en bajas ni ceros.
-4. Confirmación explícita, respaldo y verificación de que la previsualización sigue vigente antes de aplicar.
-5. Transacción por agregado producto/variantes con auditoría; acordar atomicidad global o lotes, exclusión de ejecuciones concurrentes y recuperación. No mantener transacciones SQLite durante llamadas de red.
-6. Comparar valores normalizados: repetir el mismo conjunto no debe duplicar entidades, cambios ni logs. Actualizar external_synced_at sin confundir recepción repetida con cambio comercial.
-7. Avanzar cursor solo tras persistir correctamente el tramo correspondiente, si el proveedor soporta incrementales; de lo contrario definir un recorrido completo seguro.
-8. No programar Scheduler/Queue ni intervalos hasta confirmar capacidades y límites.
-
-### Puntos de extensión y brechas conocidas
-
-- `SyncRun`: ya tiene source, started_at, finished_at, status (running/completed/failed), processed_count, created_count, updated_count, error_count y error_details. No tiene contadores específicos de variantes/omitidos/conflictos, cursor, identificador de lote ni estado parcial. Evaluar ampliación complementaria solo después de definir las semánticas reales, sin una tabla paralela por defecto.
-- `ActivityLogService::record()`: permite origin=external con actor=null sin heredar al usuario autenticado; exige transacción para éxitos y omite diferencias vacías. Admite los campos comerciales actuales mediante allowlist. No incluye external_id/external_synced_at ni vínculo con SyncRun: definir correlación segura y ampliar la lista deliberadamente si el contrato lo requiere. No usar indiscriminadamente `changed()` en el motor, porque su origen predeterminado es el contexto administrativo/sistema.
-- Reutilizar Product/ProductVariant, casts y snapshots existentes; el transporte no se acopla a modelos. Las actualizaciones masivas Query Builder omiten casts y eventos: no son un atajo seguro para datos externos.
-- Añadir permiso exclusivo Admin y panel «Integración comercial» cuando exista integración real. No exponer endpoints ni menús vacíos ahora.
-- Errores externos deben almacenarse con códigos/resúmenes seguros, sin headers, tokens, URLs con credenciales o payloads completos. Las credenciales quedan fuera del frontend, repositorio y logs.
-
-## Riesgos y decisiones pendientes
-
-- IDs no únicos o reutilizados: fusiones/duplicados incorrectos; definir ámbito y resolver conflictos antes de importar.
-- Precio de otra lista, impuestos o escala: precios públicos erróneos; contrastar contra Lista 1 del sistema.
-- Stock por depósito/reserva/unidad distinto: disponibilidad engañosa; acordar significado y conversiones.
-- Respuesta parcial, caída o límite de página: pérdida aparente de catálogo; no eliminar ni desactivar automáticamente.
-- Campos mezclados comerciales/editoriales: sobrescritura; allowlist cerrada y pruebas de preservación.
-- Concurrencia y cortes: SQLite requiere escrituras breves, ejecución controlada, transacciones y reanudación verificable.
-- Dependencia real de WooCommerce o licencia de conector: no retirar ningún componente sin confirmar arquitectura y soporte.
-- Fotos, textos o datos de clientes en exportaciones: pedir muestras mínimas anonimizadas, sin secretos.
-
-Se mantiene el circuito pedido web → enlace WhatsApp → gestión comercial. El checkout actual no descuenta ni reserva stock y no envía pedidos al sistema externo. No se cambia en 18.A.
-
-## Información mínima para habilitar 18.B
-
-1. URL oficial o contacto técnico identificado de Soluciones Es y nombre/versión exactos del programa instalado.
-2. Nombre y versión del conector con WooCommerce, manual o explicación técnica del proveedor; confirmar si WooCommerce es intermediario obligatorio.
-3. Documentación del mecanismo soportado: flujo, autenticación (sin entregar secretos por chat), permisos, paginación/archivos, límites, incremental, errores y conectividad.
-4. Muestra anonimizada: producto simple, producto con variantes, precio Lista 1, stock fraccionario, sin stock, dato ausente y baja comercial. Definir IDs, moneda, IVA, decimales, unidades y depósitos.
-5. Entorno aislado autorizado, alcance de pruebas y respaldo. Acceso mínimo de lectura donde sea posible; ninguna escritura sobre Punto de Venta.
-
-Texto sugerido para solicitar al proveedor (no enviado):
-
-> Estamos preparando una integración de lectura de catálogo comercial hacia una web Laravel. Necesitamos identificar el mecanismo soportado por su versión de Punto de Venta y su conexión con WooCommerce: conector/protocolo, documentación, autenticación y permisos, campos de Lista 1/stock/unidades/variantes, identificadores, incrementales, límites y errores. ¿Pueden proporcionar una muestra anonimizada y un entorno de pruebas, y confirmar si WooCommerce es un intermediario obligatorio? No necesitamos escribir ventas ni modificar su base Access.
-
-## Resultado y próximo paso
-
-18.A entrega esta inspección, matriz de datos, propuesta y preguntas. **No existe evidencia suficiente para dar por confirmado el mecanismo externo.** 18.B no tiene adaptador, importaciones, dry-run ni sincronización real; no se probaron conexiones externas. Se mantuvo la suite de regresión (388/2130) sin agregar mocks ficticios.
-
-Al recibir la documentación se podrá completar el relevamiento externo y comprobar las condiciones de acceso antes de desarrollar 18.B. No se inicia Fase 19 ni se publica en producción.
+Solicitar al proveedor: mecanismo documentado de entrega (sin asumir API REST), muestra anonimizada, unicidad y alcance del SKU, cambios de SKU, relación padre/variante, campo de Lista 1, moneda, IVA, escala y formato decimal, unidad de venta, significado del stock y depósito, negativos, ausencias y bajas, frecuencia, autenticación y entorno autorizado de pruebas. Hasta confirmarlo, no hay conexión real, sincronización automática ni envío de pedidos.

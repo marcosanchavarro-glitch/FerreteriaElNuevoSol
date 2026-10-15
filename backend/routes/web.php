@@ -5,6 +5,7 @@ use App\Http\Controllers\Account\OrderController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CategoryImageController;
+use App\Http\Controllers\Admin\CommercialSyncController;
 use App\Http\Controllers\Admin\ContentController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\ProductCategoryController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Admin\VariantController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegistrationController;
 use App\Http\Controllers\Auth\SessionController;
+use App\Http\Controllers\DemoAccessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Storefront\CartController;
 use App\Http\Controllers\Storefront\CatalogController;
@@ -22,8 +24,8 @@ use App\Http\Controllers\Storefront\CheckoutController;
 use App\Http\Controllers\Storefront\MediaController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/acceso-demo', [App\Http\Controllers\DemoAccessController::class, 'create'])->name('demo.login');
-Route::post('/acceso-demo', [App\Http\Controllers\DemoAccessController::class, 'store'])->middleware('throttle:demo-access')->name('demo.enter');
+Route::get('/acceso-demo', [DemoAccessController::class, 'create'])->name('demo.login');
+Route::post('/acceso-demo', [DemoAccessController::class, 'store'])->middleware('throttle:demo-access')->name('demo.enter');
 
 Route::get('/', [CatalogController::class, 'home'])->name('home');
 Route::get('/productos', [CatalogController::class, 'index'])->name('store.products');
@@ -55,6 +57,11 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     });
     Route::prefix('admin')->name('admin.')->middleware('can:access-admin')->group(function (): void {
         Route::get('/', DashboardController::class)->name('home');
+        Route::middleware('can:manage-commercial-sync')->prefix('commercial-sync')->name('sync.')->group(function (): void {
+            Route::get('/', [CommercialSyncController::class, 'index'])->name('index');
+            Route::post('/preview', [CommercialSyncController::class, 'preview'])->name('preview');
+            Route::post('/{syncRun}/apply', [CommercialSyncController::class, 'apply'])->whereNumber('syncRun')->name('apply');
+        });
         Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('can:view-activity')->name('activity.index');
         Route::get('activity-logs/{activityLog}', [ActivityLogController::class, 'show'])->whereNumber('activityLog')->middleware('can:view-activity')->name('activity.show');
         Route::get('settings', [SettingsController::class, 'edit'])->middleware('can:manage-settings')->name('settings.edit');
