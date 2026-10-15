@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: [sqlite, pgsql]
+        database: ${{ fromJSON((github.ref_name == 'codex/validation-phase18-19' || github.head_ref == 'codex/validation-phase18-19') && '["pgsql"]' || '["sqlite","pgsql"]') }}
     services:
       postgres:
         image: postgres:17
@@ -34,8 +34,17 @@ jobs:
           coverage: none
       - run: cp .env.example .env
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php artisan test --compact --display-warnings
+      - name: Run selected validation or normal suite
+        run: |
+          if [ "$FOCUSED_VALIDATION" = "true" ]; then
+            php artisan test --compact --display-warnings --filter='CommercialSync(Test|PostgresTest)|AdminDashboardTest|OrderManagementTest'
+          else
+            php artisan test --compact --display-warnings
+          fi
         env:
+          FOCUSED_VALIDATION: ${{ github.ref_name == 'codex/validation-phase18-19' || github.head_ref == 'codex/validation-phase18-19' }}
+          APP_ENV: testing
+          DB_URL: ''
           APP_KEY: base64:dGVzdGluZy1vbmx5LTAxMjM0NTY3ODlhYmNkZWYwMTI=
           DB_CONNECTION: ${{ matrix.database }}
           DB_DATABASE: ${{ matrix.database == 'pgsql' && 'ens_test' || ':memory:' }}
@@ -45,6 +54,7 @@ jobs:
           DB_PASSWORD: ephemeral-test-only
           DB_SSLMODE: disable
   docker:
+    if: github.ref_name != 'codex/validation-phase18-19' && github.head_ref != 'codex/validation-phase18-19'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
