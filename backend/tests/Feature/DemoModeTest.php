@@ -48,6 +48,25 @@ class DemoModeTest extends TestCase
         $this->post('/acceso-demo', ['password' => 'wrong'])->assertStatus(429);
     }
 
+    public function test_public_demo_allows_guests_but_keeps_admin_authentication_and_roles(): void
+    {
+        config(['demo.enabled' => true, 'demo.access_required' => false, 'demo.access_hash' => '']);
+        foreach (['/', '/productos', '/login', '/registro', '/carrito'] as $url) {
+            $this->get($url)->assertOk()->assertHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+        }
+        $this->get('/')->assertSee('Sitio de demostración')->assertDontSee('Demostración privada');
+        $this->get('/acceso-demo')->assertRedirect('/');
+        $this->post('/acceso-demo')->assertRedirect('/');
+        $this->get('/admin')->assertRedirect('/login');
+        $this->actingAs(User::factory()->create(['role' => 'customer']))->get('/admin')->assertForbidden();
+    }
+
+    public function test_public_demo_checkout_remains_fictitious(): void
+    {
+        config(['demo.access_required' => false]);
+        $this->test_fictitious_checkout_persists_without_whatsapp_or_stock_changes();
+    }
+
     public function test_gate_keeps_user_roles_separate_and_survives_navigation(): void
     {
         $this->demo();

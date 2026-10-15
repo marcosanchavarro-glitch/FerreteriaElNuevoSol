@@ -32,5 +32,5 @@ El frontend original permanece intacto en `reference/wordpress/el-nuevo-sol/`. N
 
 # Demo en Render
 
-Demo privada publicada: [El Nuevo Sol](https://el-nuevo-sol-demo.onrender.com). Render Free con PostgreSQL en Neon e imágenes en Cloudinary; persistencia comprobada tras redesplegar el 15/10/2026. Acceso, pruebas realizadas y límites: [guía de despliegue de demostración](docs/despliegue-demo-render.md). Las claves se conservan fuera del repositorio.
+Demo publicada con catálogo de acceso público: [El Nuevo Sol](https://el-nuevo-sol-demo.onrender.com). Render Free con PostgreSQL en Neon e imágenes en Cloudinary; persistencia comprobada tras redesplegar el 15/10/2026. Acceso, pruebas realizadas y límites: [guía de despliegue de demostración](docs/despliegue-demo-render.md). Las claves se conservan fuera del repositorio.
 

@@ -15,9 +15,10 @@ class DemoAccess
         }
 
         $hash = (string) config('demo.access_hash');
-        abort_unless(strlen($hash) >= 60, 503, 'El acceso a la demo todavía no está configurado.');
+        $accessRequired = (bool) config('demo.access_required');
+        abort_if($accessRequired && strlen($hash) < 60, 503, 'El acceso a la demo todavía no está configurado.');
 
-        if (! $request->routeIs('demo.*') && ! hash_equals(hash('sha256', $hash), (string) $request->session()->get('demo.access', ''))) {
+        if ($accessRequired && ! $request->routeIs('demo.*') && ! hash_equals(hash('sha256', $hash), (string) $request->session()->get('demo.access', ''))) {
             $response = $request->expectsJson()
                 ? response()->json(['message' => 'Ingresá primero a la demostración.'], 403)
                 : to_route('demo.login');

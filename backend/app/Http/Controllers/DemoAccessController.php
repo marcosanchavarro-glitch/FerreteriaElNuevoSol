@@ -10,9 +10,13 @@ use Illuminate\View\View;
 
 class DemoAccessController extends Controller
 {
-    public function create(): View
+    public function create(): View|RedirectResponse
     {
         abort_unless(config('demo.enabled'), 404);
+
+        if (! config('demo.access_required')) {
+            return to_route('home');
+        }
 
         return view('auth.demo');
     }
@@ -20,6 +24,9 @@ class DemoAccessController extends Controller
     public function store(Request $request): RedirectResponse
     {
         abort_unless(config('demo.enabled'), 404);
+        if (! config('demo.access_required')) {
+            return to_route('home');
+        }
         $data = $request->validate(['password' => ['required', 'string', 'max:200']]);
         $hash = (string) config('demo.access_hash');
         if (! Hash::check($data['password'], $hash)) {

@@ -16,7 +16,7 @@ La aplicación sigue en `backend/`: Laravel 13.33.0, PHP 8.4, Blade y CSS/JS est
 | Acceso | Clave de entrada a demo + autenticación normal de Admin/Seller/Customer |
 | Despliegues | Blueprint versionado y despliegue manual; GitHub Actions verifica SQLite, PostgreSQL y Docker |
 
-**Demo publicada y verificada el 15/10/2026:** https://el-nuevo-sol-demo.onrender.com. El acceso requiere la clave privada de demostración y, para administrar, una cuenta con el rol correspondiente.
+**Demo publicada y verificada el 15/10/2026:** https://el-nuevo-sol-demo.onrender.com. El catálogo es público, sin clave de entrada, por pedido del usuario. Para administrar sigue siendo necesaria una cuenta con el rol correspondiente. `DEMO_ACCESS_REQUIRED=false` desactiva únicamente la barrera de entrada; `DEMO_MODE=true` conserva los pedidos ficticios y el bloqueo de envíos externos. Las verificaciones de acceso privado que siguen describen la publicación inicial.
 
 ### Verificación remota realizada
 
