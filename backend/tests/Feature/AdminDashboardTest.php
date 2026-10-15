@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -55,9 +56,15 @@ class AdminDashboardTest extends TestCase
         Order::factory()->guest()->create(['status' => 'preparing']);
         Order::factory()->guest()->create(['status' => 'ready_for_pickup']);
         $latest = Order::factory()->guest()->create(['status' => 'cancelled']);
-        $this->actingAs(User::factory()->admin()->create())->get('/admin')->assertOk()
+        $this->actingAs(User::factory()->admin()->create());
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->get('/admin')->assertOk()
             ->assertViewHas('productStats', fn ($s) => $s === ['published' => 5, 'out_of_stock' => 2, 'draft' => 1, 'without_image' => 5])
             ->assertViewHas('orderStats', fn ($s) => $s['received'] === 9 && $s['preparing'] === 1 && $s['ready_for_pickup'] === 1)
             ->assertViewHas('recentOrders', fn ($orders) => $orders->count() === 8 && $orders->first()->is($latest));
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+        $this->assertCount(3, $queries);
     }
 }

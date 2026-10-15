@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Services\Orders\OrderStatusService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -124,6 +125,26 @@ class OrderManagementTest extends TestCase
         $this->get(route('admin.orders.index', ['from' => '2020-01-01', 'to' => '2026-01-01']))->assertSessionHasErrors();
         Order::factory()->count(21)->guest()->create();
         $this->get(route('admin.orders.index'))->assertOk()->assertViewHas('orders', fn ($orders) => $orders->count() === 20 && $orders->total() === 23);
+    }
+
+    public function test_unfiltered_pagination_reuses_fresh_counts_and_filters_keep_their_own_total(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->get('/admin/orders')->assertOk()->assertViewHas('orders', fn ($orders) => $orders->total() === 0);
+        Order::factory()->guest()->count(21)->create();
+        Order::factory()->guest()->create(['status' => 'preparing']);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $this->get('/admin/orders?page=2&q=%20')->assertOk()
+            ->assertViewHas('orders', fn ($orders) => $orders->total() === 22 && $orders->count() === 2 && $orders->currentPage() === 2);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+        $this->assertCount(2, $queries);
+
+        $this->get('/admin/orders?status=preparing')->assertOk()
+            ->assertViewHas('orders', fn ($orders) => $orders->total() === 1 && $orders->count() === 1)
+            ->assertViewHas('counts', fn ($counts) => $counts->sum() === 22);
     }
 
     public function test_admin_detail_uses_snapshots_after_catalog_deletion(): void

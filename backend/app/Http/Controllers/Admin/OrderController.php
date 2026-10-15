@@ -43,9 +43,12 @@ class OrderController extends Controller
             $query->whereNotNull('user_id');
         }
 
+        $counts = Order::select('status')->selectRaw('count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status');
+        $hasFilters = collect($filters)->except('page')->contains(fn ($value) => $value !== null && trim((string) $value) !== '');
+
         return view('admin.orders.index', [
-            'orders' => $query->latest('id')->paginate(20)->withQueryString(), 'filters' => $filters,
-            'counts' => Order::select('status')->selectRaw('count(*) as aggregate')->groupBy('status')->pluck('aggregate', 'status'),
+            'orders' => $query->latest('id')->paginate(20, total: $hasFilters ? null : (int) $counts->sum())->withQueryString(), 'filters' => $filters,
+            'counts' => $counts,
         ]);
     }
 
