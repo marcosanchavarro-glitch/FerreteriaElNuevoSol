@@ -2,6 +2,7 @@
 
 namespace App\Services\Catalog;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -37,7 +38,7 @@ class CloudinaryImages
             $response = $operation === 'download'
                 ? $client->get($url, $parameters)
                 : ($bytes === null ? $client->asForm()->post($url, $parameters) : $client->attach('file', $bytes, 'image.webp')->post($url, $parameters));
-        } catch (\Throwable) {
+        } catch (ConnectionException) {
             throw new RuntimeException('No se pudo contactar al almacenamiento de imágenes.');
         }
         if (! $response->successful() && ! ($operation === 'download' && $response->status() === 404)) {

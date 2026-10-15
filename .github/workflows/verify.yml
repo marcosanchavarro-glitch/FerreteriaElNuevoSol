@@ -21,7 +21,7 @@ jobs:
           POSTGRES_PASSWORD: ephemeral-test-only
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U ens_test -d ens_test" --health-interval 5s --health-timeout 5s --health-retries 10
     defaults:
       run:
         working-directory: backend
@@ -32,8 +32,9 @@ jobs:
           php-version: "8.4"
           extensions: gd, intl, mbstring, pdo_sqlite, pdo_pgsql, pdo_mysql, zip
           coverage: none
+      - run: cp .env.example .env
       - run: composer install --no-interaction --prefer-dist --no-progress
-      - run: php artisan test --compact
+      - run: php artisan test --compact --display-warnings
         env:
           APP_KEY: base64:dGVzdGluZy1vbmx5LTAxMjM0NTY3ODlhYmNkZWYwMTI=
           DB_CONNECTION: ${{ matrix.database }}

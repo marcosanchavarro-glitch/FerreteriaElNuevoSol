@@ -13,8 +13,12 @@ use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Notifications\Events\NotificationSending;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,11 +39,11 @@ class AppServiceProvider extends ServiceProvider
     {
         if (config('demo.enabled')) {
             config(['mail.default' => 'array']);
-            \Illuminate\Support\Facades\Event::listen(\Illuminate\Mail\Events\MessageSending::class, fn () => false);
-            \Illuminate\Support\Facades\Event::listen(\Illuminate\Notifications\Events\NotificationSending::class, fn () => false);
+            Event::listen(MessageSending::class, fn () => false);
+            Event::listen(NotificationSending::class, fn () => false);
         }
         if (app()->environment('production')) {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
         RateLimiter::for('demo-access', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         View::composer(['storefront.cart', 'storefront.checkout', 'storefront.confirmation'], function (\Illuminate\View\View $view): void {

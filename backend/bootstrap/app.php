@@ -1,12 +1,13 @@
 <?php
 
-use App\Http\Middleware\EnsureActiveUser;
 use App\Http\Middleware\DemoAccess;
+use App\Http\Middleware\EnsureActiveUser;
 use App\Services\Audit\ActivityLogService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR | Request::HEADER_X_FORWARDED_PORT | Request::HEADER_X_FORWARDED_PROTO);
         }
         $middleware->appendToGroup('web', DemoAccess::class);
+        $middleware->appendToPriorityList(StartSession::class, DemoAccess::class);
         $middleware->appendToGroup('web', EnsureActiveUser::class);
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn (Request $request) => route($request->user()?->can('access-admin') ? 'admin.home' : 'account.edit'));

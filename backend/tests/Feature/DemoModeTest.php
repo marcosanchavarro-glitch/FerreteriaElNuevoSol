@@ -6,10 +6,12 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
+use App\Providers\AppServiceProvider;
 use App\Services\Storefront\WhatsAppOrder;
 use Database\Seeders\RenderDemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class DemoModeTest extends TestCase
@@ -55,6 +57,8 @@ class DemoModeTest extends TestCase
         $this->get('/productos')->assertOk();
         $this->get('/admin')->assertRedirect('/login');
         $this->actingAs(User::factory()->create(['role' => 'customer']))->get('/admin')->assertForbidden();
+        $this->flushSession();
+        $this->enter();
         $this->actingAs(User::factory()->create(['role' => 'admin']))->get('/admin')->assertOk();
         $this->assertSame(10080, config('session.lifetime'));
     }
@@ -101,6 +105,16 @@ class DemoModeTest extends TestCase
         $user = User::factory()->create();
         $this->post('/recuperar-contrasena', ['email' => $user->email])->assertSessionHas('status');
         $this->assertDatabaseCount('password_reset_tokens', 0);
+    }
+
+    public function test_demo_cancels_mail_delivery_even_when_a_mailer_is_explicitly_selected(): void
+    {
+        $this->demo();
+        (new AppServiceProvider($this->app))->boot();
+        $mailer = Mail::mailer('array');
+        $mailer->raw('Pedido ficticio', fn ($message) => $message->to('customer@demo.test'));
+        $this->assertCount(0, $mailer->getSymfonyTransport()->messages());
+        $this->assertSame('array', config('mail.default'));
     }
 
     public function test_seed_is_idempotent_and_does_not_overwrite_edits_or_passwords(): void

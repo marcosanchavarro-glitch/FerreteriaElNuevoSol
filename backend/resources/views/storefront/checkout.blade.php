@@ -11,8 +11,8 @@
 @endforeach
 </div>
 @include('storefront.pickup')
-<p class="ens-muted">Al confirmar se guardará tu pedido. Después podrás continuar por WhatsApp para coordinarlo con el local.</p>
-<button type="submit" class="ens-btn ens-btn-primary">Confirmar pedido por WhatsApp</button>
+<p class="ens-muted">{{ config('demo.enabled') ? 'Usá datos ficticios. Al confirmar se guardará un pedido de prueba, sin contactar al comercio.' : 'Al confirmar se guardará tu pedido. Después podrás continuar por WhatsApp para coordinarlo con el local.' }}</p>
+<button type="submit" class="ens-btn ens-btn-primary">{{ config('demo.enabled') ? 'Crear pedido de prueba' : 'Confirmar pedido por WhatsApp' }}</button>
 </form></section>
 <aside class="ens-order-summary"><h2>Tu pedido</h2>
 @foreach($items as $item)<article class="ens-summary-line"><strong>{{ $item['product_name'] }}</strong>@if($item['variant_name'])<span>{{ $item['variant_name'] }}</span>@endif<span>{{ \App\Support\ProductDisplay::quantity($item['quantity']) }} {{ \App\Support\ProductDisplay::label($item['sale_unit']) }} × {{ \App\Support\ProductDisplay::money($item['unit_price']) }}</span><b>{{ \App\Support\ProductDisplay::money($item['subtotal']) }}</b></article>@endforeach

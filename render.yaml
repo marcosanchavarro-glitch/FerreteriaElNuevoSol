@@ -2,12 +2,13 @@
 services:
   - type: web
     name: el-nuevo-sol-demo
+    branch: codex/render-demo
     runtime: docker
     plan: free
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /up
-    autoDeployTrigger: off
+    autoDeployTrigger: "off"
     envVars:
       - key: APP_NAME
         value: El Nuevo Sol

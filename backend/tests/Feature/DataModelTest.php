@@ -41,8 +41,10 @@ class DataModelTest extends TestCase
         foreach (['users', 'products', 'product_variants', 'categories', 'category_product', 'product_images', 'orders', 'order_items', 'order_status_history', 'notifications', 'notification_user', 'homepage_sections', 'banners', 'settings', 'sync_runs', 'activity_logs'] as $table) {
             $this->assertTrue(Schema::hasTable($table), $table);
         }
-        $this->assertSame('sqlite', DB::connection()->getDriverName());
-        $this->assertTrue(DB::connection()->getConfig('foreign_key_constraints'));
+        $this->assertContains(DB::connection()->getDriverName(), ['sqlite', 'pgsql']);
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $this->assertTrue(DB::connection()->getConfig('foreign_key_constraints'));
+        }
         $this->assertNotEmpty(Schema::getForeignKeys('order_items'));
         $this->assertNotEmpty(Schema::getIndexes('category_product'));
     }
