@@ -49,3 +49,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build --target production -t ens-demo ./backend
+      - name: Verify Apache and static assets in the production image
+        run: |
+          docker run --rm --entrypoint sh ens-demo -c 'test ! -f .env && test ! -f .env.demo-secrets && test ! -f database/database.sqlite'
+          docker run -d --name ens-http -p 18080:10000 \
+            -e PORT=10000 -e APP_ENV=production -e APP_DEBUG=false \
+            -e APP_URL=https://demo.example.test \
+            -e APP_KEY=base64:dGVzdGluZy1vbmx5LTAxMjM0NTY3ODlhYmNkZWYwMTI= \
+            --entrypoint apache2-foreground ens-demo
+          curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:18080/up
+          curl --fail --output /dev/null http://127.0.0.1:18080/css/branding.css
+          docker stop ens-http
+      - name: Validate Render Blueprint against official schema
+        run: |
+          python -m pip install --quiet PyYAML jsonschema
+          python - <<'PY'
+          import json, urllib.request, yaml, jsonschema
+          with urllib.request.urlopen('https://render.com/schema/render.yaml.json') as response:
+              schema = json.load(response)
+          with open('render.yaml', encoding='utf-8') as source:
+              blueprint = yaml.safe_load(source)
+          jsonschema.validate(blueprint, schema)
+          print('Blueprint valid')
+          PY

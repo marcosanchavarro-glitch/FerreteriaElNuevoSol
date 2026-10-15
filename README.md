@@ -30,3 +30,7 @@ Las imágenes requieren GD con WebP. El almacenamiento sigue privado; las rutas 
 El frontend original permanece intacto en `reference/wordpress/el-nuevo-sol/`. No se cargan WordPress ni WooCommerce. El pedido se guarda antes de mostrar WhatsApp y no descuenta stock. Falta configurar el número real del negocio, dirección y horarios desde Configuración; las variables SHOP_* funcionan como valores iniciales cuando no hay configuración persistida. Sin pagos ni envíos. El correo real continúa deshabilitado. 18.B requiere documentación confirmada y entorno de pruebas autorizado.
 
 
+# Demo en Render
+
+Preparación y pasos pendientes: [guía de despliegue de demostración](docs/despliegue-demo-render.md). La demo pública requiere configurar Neon y Cloudinary y verificar persistencia tras un redeploy; todavía no se declara publicada.
+
