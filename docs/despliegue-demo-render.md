@@ -16,11 +16,25 @@ La aplicación sigue en `backend/`: Laravel 13.33.0, PHP 8.4, Blade y CSS/JS est
 | Acceso | Clave de entrada a demo + autenticación normal de Admin/Seller/Customer |
 | Despliegues | Blueprint versionado y despliegue manual; GitHub Actions verifica SQLite, PostgreSQL y Docker |
 
-**No hay todavía una demo pública verificada.** Faltan la conexión secreta a una base Neon nueva y las credenciales de Cloudinary. Tampoco se probó aún la persistencia tras un reinicio real en Render. Un build Docker exitoso no equivale a un despliegue.
+**Demo publicada y verificada el 15/10/2026:** https://el-nuevo-sol-demo.onrender.com. El acceso requiere la clave privada de demostración y, para administrar, una cuenta con el rol correspondiente.
+
+### Verificación remota realizada
+
+- Render Web Service Free, Docker/PHP 8.4/Apache. Servicio `srv-db8dkk2jnfac73f85m10`; Blueprint `exs-db8dierncjis73fgmcgg`. Código desplegado: `b74ece7`.
+- Neon Free: proyecto exclusivo `el-nuevo-sol-demo`, PostgreSQL 17, base `el_nuevo_sol_demo`; conexión directa con TLS `verify-full`. Cloudinary conserva imágenes autenticadas bajo el prefijo `el-nuevo-sol-demo`.
+- Despliegue de persistencia `dep-db8dq3ijnfac73f8ktrg`, estado `live` confirmado el 15/10/2026 a las 14:03:40 UTC. Tras redesplegar se conservaron producto, imagen, pedido, cambio del CMS y sesión administrativa.
+- Producto ficticio creado desde el panel: `DEMO-PERSIST-001`, precio 1234,56 pesos, stock 10 unidades. Imagen PNG de marca subida, convertida y recuperada correctamente desde Cloudinary tanto en administración como en catálogo público.
+- Pedido ficticio `ENS-01M4ZXY79BH20SBQTG66CQN2CV`, total 123456 centavos, visible en administración. Cambio a «En preparación» con historial y aviso interno. WhatsApp deshabilitado en la confirmación.
+- Inicio y cierre de sesión comprobados para Admin, Seller y Customer. Cliente bloqueado con 403 en `/admin`; vendedor bloqueado con 403 en `/admin/settings`. Administrador navega entre secciones sin repetir el ingreso.
+- `/up` devuelve 200; una petición sin sesión a `/admin` termina en el acceso privado. Cabeceras `noindex, nofollow, noarchive`, cookies `Secure` y `HttpOnly` verificadas por HTTPS.
+- Revisión visual remota en escritorio (1280 px) y vista estrecha (547 px), sin desbordamiento horizontal. El control de viewport del navegador no aplicó el ancho solicitado de 390 px; esa medida exacta queda pendiente de repetir en un dispositivo o navegador que permita fijarla. Las pruebas previas locales a 390 px figuran abajo.
+- Se corrigió una conexión de Neon truncada al copiar texto visual partido en líneas. La conexión completa quedó guardada y las migraciones y el seeder terminaron correctamente. No hubo cambios de código de aplicación durante esta publicación.
+
+Usuarios: `admin@elnuevosol.demo`, `vendedor@elnuevosol.demo`, `cliente@elnuevosol.demo`. Sus contraseñas aleatorias y la clave de entrada están en el archivo local ignorado `backend/.env.demo-secrets`; no se publican en este documento. No se copiaron datos comerciales, no se activaron pagos, SMTP ni Punto de Venta y no se crearon servicios pagos.
 
 La base local existente y sus imágenes no se migran. La revisión de navegador usa `.tools/render-demo-review.sqlite` y `.tools/render-demo-review-media`, aisladas del desarrollo anterior.
 
-## Completar la publicación
+## Reproducir la publicación
 
 1. En Neon, crear una base o proyecto **vacío y exclusivo** para la demo, dentro de un plan gratuito que la cuenta permita. No utilizar una base de producción ni restaurar el SQLite local. Conservar el usuario y la conexión **directa** para las migraciones y sesiones. Elegir una región próxima a la del servicio Render.
 2. En Cloudinary, crear o elegir un entorno exclusivo de demostración. Obtener Cloud name, API key y API secret. No configurar uploads sin firma, presets que publiquen imágenes ni webhooks a clientes. El prefijo `el-nuevo-sol-demo` debe permanecer estable entre despliegues.
