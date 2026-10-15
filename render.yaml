@@ -1,0 +1,73 @@
+# yaml-language-server: $schema=https://render.com/schema/render.yaml.json
+services:
+  - type: web
+    name: el-nuevo-sol-demo
+    runtime: docker
+    plan: free
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /up
+    autoDeployTrigger: off
+    envVars:
+      - key: APP_NAME
+        value: El Nuevo Sol
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+      - key: DEMO_MODE
+        value: "true"
+      - key: DEMO_ACCESS_HASH
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_URL
+        sync: false
+      - key: DB_SSLMODE
+        value: verify-full
+      - key: PGSSLROOTCERT
+        value: /etc/ssl/certs/ca-certificates.crt
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_LIFETIME
+        value: "10080"
+      - key: SESSION_EXPIRE_ON_CLOSE
+        value: "false"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: MAIL_MAILER
+        value: array
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: LOG_LEVEL
+        value: warning
+      - key: CATALOG_STORAGE
+        value: cloudinary
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: CLOUDINARY_PREFIX
+        value: el-nuevo-sol-demo
+      - key: DEMO_ADMIN_EMAIL
+        sync: false
+      - key: DEMO_ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_SELLER_EMAIL
+        sync: false
+      - key: DEMO_SELLER_PASSWORD
+        sync: false
+      - key: DEMO_CUSTOMER_EMAIL
+        sync: false
+      - key: DEMO_CUSTOMER_PASSWORD
+        sync: false

@@ -1,0 +1,5 @@
+@extends('layouts.app')
+@section('title','Configuración · El Nuevo Sol')
+@section('content')<h1>Configuración del local</h1><p class="subtitle">Estos datos se muestran en el sitio y se usan para el retiro y el enlace de WhatsApp de los pedidos.</p><form class="card cms-form" method="POST" action="{{ route('admin.settings.update') }}">@csrf @method('PUT')
+@foreach($fields as $field=>$label)<div class="field"><label for="{{ $field }}">{{ $label }}</label><input id="{{ $field }}" name="{{ $field }}" value="{{ old($field,$values[$field]) }}" maxlength="{{ $field === 'business_name' ? 100 : ($field === 'whatsapp_number' ? 15 : ($field === 'phone' ? 40 : 255)) }}" @required($field === 'business_name')>@if($field === 'whatsapp_number')<small class="hint">Número internacional, solo dígitos, sin + ni espacios. Vacío deshabilita el enlace de WhatsApp. No se envían mensajes automáticamente.</small>@endif @error($field)<p class="field-error">{{ $message }}</p>@enderror</div>@endforeach
+<button>Guardar configuración</button></form>@endsection

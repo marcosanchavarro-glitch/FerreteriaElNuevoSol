@@ -1,0 +1,16 @@
+@extends('layouts.app')
+@section('title','Variante · '.$product->name)
+@section('content')<h1>{{ $variant->exists ? 'Editar variante' : 'Crear variante' }}</h1><p class="subtitle">{{ $product->name }}</p>@include('admin.products.sections')
+<form method="POST" action="{{ $variant->exists ? route('admin.products.variants.update',[$product,$variant]) : route('admin.products.variants.store',$product) }}">@csrf @if($variant->exists) @method('PUT') @endif
+<div class="grid"><section class="card"><h2>Información web</h2>
+<div class="field"><label for="name">Nombre</label><input id="name" name="name" value="{{ old('name',$variant->name) }}" maxlength="255" required></div>
+<div class="field"><label for="value">Valor / presentación</label><input id="value" name="value" value="{{ old('value',$variant->value) }}" maxlength="255" placeholder="Ejemplo: 4 L"></div>
+<div class="field"><label for="sale_unit">Unidad de venta</label><select id="sale_unit" name="sale_unit"><option value="">Heredar del producto ({{ \App\Support\ProductDisplay::label($product->sale_unit) }})</option>@foreach(\App\Enums\SaleUnit::cases() as $option)<option value="{{ $option->value }}" @selected(old('sale_unit',$variant->sale_unit?->value) === $option->value)>{{ \App\Support\ProductDisplay::label($option) }}</option>@endforeach</select></div>
+<div class="field"><label for="purchase_mode">Modalidad de compra</label><select id="purchase_mode" name="purchase_mode"><option value="">Heredar del producto ({{ \App\Support\ProductDisplay::label($product->purchase_mode) }})</option>@foreach(\App\Enums\PurchaseMode::cases() as $option)<option value="{{ $option->value }}" @selected(old('purchase_mode',$variant->purchase_mode?->value) === $option->value)>{{ \App\Support\ProductDisplay::label($option) }}</option>@endforeach</select></div>
+<input type="hidden" name="active" value="0"><label class="check"><input type="checkbox" name="active" value="1" @checked(old('active',$variant->active))>Variante activa</label><p class="hint">Desactivarla conserva sus referencias históricas.</p></section>
+<section class="card"><h2>Datos comerciales locales</h2>@can('updateCommercial',$variant)
+<div class="field"><label for="sku">SKU local</label><input id="sku" name="sku" value="{{ old('sku',$variant->sku) }}" maxlength="255"><small class="hint">No se repite dentro de este producto.</small></div>
+<div class="field"><label for="price">Precio en pesos</label><input id="price" name="price" inputmode="decimal" value="{{ old('price',\App\Support\ProductDisplay::moneyInput($variant->price)) }}"><small class="hint">Hasta dos decimales, sin miles. Ejemplo: 8500,50.</small></div>
+<div class="field"><label for="stock">Stock</label><input id="stock" name="stock" inputmode="decimal" value="{{ old('stock',$variant->stock) }}"><small class="hint">Hasta tres decimales. Ejemplo: 0,750. Vacío = a confirmar.</small></div>
+@else<div class="readonly"><p>Solo Admin puede cambiar SKU, precio y stock locales.</p><p>{{ $variant->sku ?? 'Sin SKU' }} · {{ \App\Support\ProductDisplay::money($variant->price) }}</p><p>Stock: {{ $variant->stock ?? 'A confirmar' }}</p></div>@endcan</section></div>
+<div class="actions"><button>Guardar variante</button><a href="{{ route('admin.products.variants.index',$product) }}">Volver a variantes</a></div></form>@endsection

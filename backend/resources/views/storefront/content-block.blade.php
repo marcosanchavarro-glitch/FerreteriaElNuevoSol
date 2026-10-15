@@ -1,0 +1,3 @@
+<article class="ens-promo cms-content-block {{ $promotion ? 'ens-promo-dark' : '' }}">
+@if($content->image_path && $publicImages->available($content->image_path,$mediaKind.'/'.$content->id))<img class="cms-content-image" src="{{ route('store.images.content',['kind'=>$mediaKind,'id'=>$content->id]) }}" alt="{{ $content->title }}" loading="lazy">@endif
+<div><h2>{{ $content->title }}</h2>@if($content->subtitle)<p>{{ $content->subtitle }}</p>@endif @if($content instanceof \App\Models\HomepageSection && $content->content)<p class="cms-copy">{{ $content->content }}</p>@endif @include('storefront.content-button',['content'=>$content,'buttonClass'=>$promotion ? 'ens-btn-secondary' : 'ens-btn-outline'])</div></article>

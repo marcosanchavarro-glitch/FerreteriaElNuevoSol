@@ -1,0 +1,8 @@
+/.tools/
+/backend/.env
+/backend/.env.*
+!/backend/.env.example
+/backend/vendor/
+/backend/node_modules/
+/backend/database/*.sqlite*
+/backend/.phpunit.result.cache

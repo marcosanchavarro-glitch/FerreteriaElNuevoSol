@@ -1,0 +1,1 @@
+<nav class="ens-account-nav" aria-label="Mi cuenta"><a href="{{ route('account.edit') }}">Mi perfil</a><a href="{{ route('account.orders.index') }}">Mis pedidos</a><a href="{{ route('account.notifications.index') }}">Notificaciones</a><form method="POST" action="{{ route('logout') }}">@csrf<button type="submit">Cerrar sesión</button></form></nav>

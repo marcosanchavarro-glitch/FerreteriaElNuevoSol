@@ -1,0 +1,31 @@
+/* Identity from Manual de uso logotipo El Nuevo Sol, pages 2–5.
+   Original logo and pattern extracted from the supplied PDF; retain clear space. */
+:root{--ens-navy:#263372;--ens-navy-2:#263372;--ens-orange:#f08050;--ens-yellow:#f08050;--ens-brand-gray:#706f6f;--ens-soft:#fff2ec}
+body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}
+.ens-logo{display:block;width:246px;height:auto;max-width:100%;background:#fff}
+.ens-header{background:#fff;color:var(--ens-navy)}
+.ens-header-inner{min-height:106px}
+.ens-brand{min-width:0;flex:0 0 246px}
+.ens-header .ens-account,.ens-header .ens-cart-link,.ens-header .ens-bell{color:var(--ens-navy)}
+.ens-search{border:1px solid #c9ccda}
+.ens-nav{background:var(--ens-navy);border:0}
+.ens-nav a{color:#fff}
+.ens-nav a:hover{color:var(--ens-orange)}
+.ens-nav a:focus-visible{outline-color:var(--ens-orange)}
+.ens-hero-art{background:#fff url('../images/branding/tools-pattern.png') repeat center/620px auto;padding:30px;min-width:0}
+.ens-hero-art .ens-hero-logo{display:block;width:100%;height:auto;min-height:0;max-height:none;object-fit:contain;box-shadow:0 12px 32px #26337212}
+.ens-footer-logo{display:block;width:246px;max-width:100%;height:auto;background:#fff}
+header .brand{display:block;flex-shrink:0;background:#fff}
+header .brand .ens-logo{width:246px}
+.ens-btn-primary:hover{background:#f6a382}
+.ens-filters a.ens-selected{color:var(--ens-navy)}
+@media(max-width:720px){
+ .ens-header-inner{min-height:0}
+ .ens-brand{flex:0 1 210px}
+ .ens-logo{width:210px}
+ .ens-header .ens-actions{margin-left:0}
+ .ens-hero-art{min-height:220px;padding:32px}
+ .ens-hero-art .ens-hero-logo{max-width:380px}
+}
+
+.demo-notice { margin: 0; padding: .55rem 1rem; text-align: center; background: #263372; color: #fff; font-size: .85rem; line-height: 1.5; }

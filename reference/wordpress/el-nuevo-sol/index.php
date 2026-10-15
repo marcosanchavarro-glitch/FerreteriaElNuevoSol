@@ -1,0 +1,1 @@
+<?php get_header(); ens_breadcrumb(get_the_title()); ?><main class="ens-container ens-main"><div class="ens-page-head"><h1><?php the_title(); ?></h1></div><?php if(have_posts()): while(have_posts()): the_post(); ?><article class="ens-block"><?php the_content(); ?></article><?php endwhile; endif; ?></main><?php get_footer(); ?>

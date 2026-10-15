@@ -1,0 +1,1 @@
+@if($content->button_text && \App\Rules\InternalLink::safe($content->button_url))<a class="ens-btn {{ $buttonClass ?? 'ens-btn-outline' }}" href="{{ $content->button_url }}">{{ $content->button_text }}</a>@endif

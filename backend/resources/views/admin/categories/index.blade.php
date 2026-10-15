@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('title','Categorías · El Nuevo Sol')
+@section('content')<div class="toolbar"><div><h1>Categorías</h1><p class="subtitle">Organización del catálogo por niveles.</p></div><a class="button" href="{{ route('admin.categories.create') }}">Crear categoría</a></div>
+<section class="card table-scroll"><table><thead><tr><th>Categoría</th><th>Estado</th><th>Destacada</th><th>Orden</th><th>Productos directos</th><th>Acciones</th></tr></thead><tbody>
+@forelse($tree as $row) @php($category = $row['category'])<tr><td>{{ str_repeat('— ',$row['depth']) }}<strong>{{ $category->name }}</strong><br><small>{{ $category->slug }}</small></td><td>{{ $category->active ? 'Activa' : 'Inactiva' }}</td><td>{{ $category->featured ? 'Sí' : 'No' }}</td><td>{{ $category->sort_order }}</td><td>{{ $category->products_count }}</td><td><a href="{{ route('admin.categories.edit',$category) }}">Editar</a></td></tr>@empty<tr><td colspan="6" class="empty">Todavía no hay categorías.</td></tr>@endforelse
+</tbody></table></section><p class="hint">El orden se aplica entre categorías hermanas. Desactivar conserva hijos y productos asociados; no desactiva automáticamente las subcategorías.</p>@endsection
