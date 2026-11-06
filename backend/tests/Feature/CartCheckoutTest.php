@@ -321,6 +321,11 @@ class CartCheckoutTest extends TestCase
         $this->assertStringContainsString('A confirmar', $message);
         $this->assertStringContainsString('Productos a confirmar: 1', $message);
         $this->assertStringContainsString('Retiro en local.', $message);
+        $this->assertStringContainsString('Cliente: '.$order->customer_first_name.' '.$order->customer_last_name, $message);
+        $this->assertStringContainsString('Teléfono: '.$order->customer_phone, $message);
+        $this->assertStringContainsString('sujeto a consulta', $message);
+        $this->assertStringContainsString('precio unitario:', $message);
+        $this->assertStringContainsString('pendiente de atención y confirmación', $message);
         $this->assertStringContainsString($order->order_number, $message);
         config(['shop.whatsapp_number' => 'https://evil.test']);
         $this->assertNull($wa->url($order));

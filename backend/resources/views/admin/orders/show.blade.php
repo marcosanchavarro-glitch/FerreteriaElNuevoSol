@@ -4,7 +4,7 @@
 <a href="{{ route('admin.orders.index') }}">← Pedidos</a><h1>Pedido {{ $order->order_number }}</h1>
 <section class="card"><p>{{ $order->created_at->timezone(config('shop.timezone'))->format('d/m/Y H:i') }} · Retiro en local</p><p class="order-badge order-{{ $order->status->value }}">Estado: {{ $order->status->label() }}</p><h2>Cliente {{ $order->user_id ? 'registrado' : 'invitado' }}</h2><p>{{ $order->customer_first_name }} {{ $order->customer_last_name }}<br>Teléfono: {{ $order->customer_phone }}<br>Email: {{ $order->customer_email ?? 'No indicado' }}</p></section>
 <section class="card"><h2>Productos del pedido</h2>@include('storefront.order-items')</section>
-<section class="card"><h2>Cambiar estado</h2><div class="actions">
+<section class="card"><h2>Cambiar estado</h2><p class="hint">Recibido: solicitud registrada, pendiente de atención. En preparación: pedido en gestión. Listo para retirar: confirmación explícita de la ferretería. Abrir WhatsApp no confirma envío ni recepción del mensaje y no cambia estos estados. La facturación se realiza por separado en Punto de Venta.</p><div class="actions">
 @forelse($order->status->nextStates() as $next)
 @if($next !== \App\Enums\OrderStatus::Cancelled)
 <form method="POST" action="{{ route('admin.orders.update',$order) }}">@csrf @method('PATCH')<input type="hidden" name="expected_status" value="{{ $order->status->value }}"><input type="hidden" name="status" value="{{ $next->value }}"><button type="submit">Pasar a {{ $next->label() }}</button></form>
