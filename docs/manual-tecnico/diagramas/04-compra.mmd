@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant N as Navegador
+    participant C as Cart / sesión
+    participant X as Checkout
+    participant D as Base de datos
+    N->>C: Agregar producto, variante y cantidad
+    C->>D: Consultar publicación, precio y stock
+    C-->>N: Carrito recalculado
+    N->>X: GET checkout
+    X->>C: Resumen estricto
+    X-->>N: Resumen y token; fingerprint en sesión
+    N->>X: POST contacto y token
+    X->>D: Comprobar checkout_key
+    alt Pedido ya completado por esta sesión/usuario
+        X-->>N: Confirmación existente
+    else Nuevo pedido
+        X->>D: BEGIN; crear pedido
+        X->>C: Recalcular y comparar fingerprint
+        alt Resumen válido
+            X->>D: Líneas, totales, historial, aviso interno; COMMIT
+            X->>C: Guardar confirmación y vaciar carrito
+            X-->>N: Confirmación; enlace WhatsApp solo fuera de demo
+        else Resumen cambió o falló escritura
+            X->>D: ROLLBACK
+            X-->>N: Revisar datos nuevamente / error
+        end
+    end

@@ -60,12 +60,15 @@ if (editorMain) {
   if (form.dataset.busy) return;
   if (panel && [...dirty].some(other => other !== form && panel.contains(other))) { report('Guardá primero los otros cambios pendientes de esta sección.'); return; }
   if (form.querySelector('input[value="DELETE"]') && !confirm('¿Eliminar esta imagen y su archivo? Esta acción no se puede deshacer.')) return;
+  let feedback = form.querySelector('[data-form-feedback]');
+  if (!feedback) { feedback = document.createElement('p'); feedback.dataset.formFeedback = ''; feedback.setAttribute('role','status'); form.append(feedback); }
+  const show = message => { report(message); feedback.textContent = message; };
   const data = new FormData(form);
   const buttons = [...form.querySelectorAll('button')].map(button => [button, button.disabled]);
   form.dataset.busy = 'true'; form.setAttribute('aria-busy','true'); buttons.forEach(([button]) => { button.disabled = true; });
   form.querySelectorAll('[data-inline-error]').forEach(error => error.remove());
   form.querySelectorAll('[aria-invalid]').forEach(input => input.removeAttribute('aria-invalid'));
-  report('Guardando…');
+  show('Guardando…');
   let committed = false;
   try {
    const response = await fetch(form.action, {method:'POST', body:data, headers:{Accept:'application/json'}, credentials:'same-origin'});
@@ -78,7 +81,7 @@ if (editorMain) {
     });
     const invalid = form.querySelector('[aria-invalid]');
     let ancestor = invalid?.parentElement; while (ancestor) { if (ancestor.tagName === 'DETAILS') ancestor.open = true; ancestor = ancestor.parentElement; }
-    invalid?.focus(); report('Revisá los campos indicados; los datos ingresados se conservaron.'); return;
+    invalid?.focus(); show('Revisá los campos indicados; los datos ingresados se conservaron.'); return;
    }
    if (!response.ok || new URL(response.url).pathname === '/login') throw new Error('No se pudo confirmar el guardado. Revisá tu sesión y conexión.');
    committed = true; dirty.delete(form);
@@ -91,11 +94,12 @@ if (editorMain) {
     const openDetails = [...panel.querySelectorAll('details')].map(detail => detail.open);
     [...updated.querySelectorAll('details')].forEach((detail,index) => { if (index < openDetails.length) detail.open = openDetails[index]; });
     const position = scrollY;
+    const notice = document.createElement('p'); notice.className = 'notice'; notice.setAttribute('role','status'); notice.textContent = 'Sección guardada'; updated.prepend(notice);
     panel.replaceWith(updated);
     requestAnimationFrame(() => scrollTo(0,position));
    }
-   report(dirty.size ? 'Sección guardada; quedan otros cambios pendientes.' : 'Cambios guardados');
-  } catch (error) { report(error.message || (committed ? 'Cambio guardado; vista pendiente de actualizar.' : 'Error de conexión. Verificá el resultado antes de volver a enviar.')); }
+   show(dirty.size ? 'Sección guardada; quedan otros cambios pendientes.' : 'Cambios guardados');
+  } catch (error) { show(error.message || (committed ? 'Cambio guardado; vista pendiente de actualizar.' : 'Error de conexión. Verificá el resultado antes de volver a enviar.')); }
   finally { delete form.dataset.busy; form.removeAttribute('aria-busy'); buttons.forEach(([button,disabled]) => { button.disabled = disabled; }); }
  });
  document.addEventListener('change', event => {
@@ -108,6 +112,7 @@ if (editorMain) {
 // Existing endpoints remain available without JavaScript.
 document.addEventListener('submit', event => {
  const form = event.target;
+ if (form.action.endsWith('/quick')) { try { sessionStorage.setItem('ens.product-context',JSON.stringify({url:location.href,scroll:scrollY})); } catch {} }
  if (form.dataset.confirm && !confirm(form.dataset.confirm)) { event.preventDefault(); return; }
  if (!form.closest('.admin-workspace') || form.matches('[data-editor-main]') || form.closest('[data-editor-panel]')) return;
  if (form.dataset.submitted) { event.preventDefault(); return; }

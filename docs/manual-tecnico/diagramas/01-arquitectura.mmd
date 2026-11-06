@@ -1,0 +1,13 @@
+flowchart TD
+    N["Navegador: HTML, CSS y JavaScript"] -->|HTTP / formularios| H["public/index.php y bootstrap/app.php"]
+    H --> M["Middleware web: sesión, CSRF, demo y usuario activo"]
+    M --> R["Rutas, binding, gates y FormRequests"]
+    R --> C["Controladores"]
+    C --> S["Servicios de catálogo, compra, pedidos, CMS y auditoría"]
+    S --> E["Eloquent, Query Builder, modelos y casts"]
+    E --> D[("SQLite local o PostgreSQL remoto")]
+    S --> I["ImageStorage / CloudinaryImages"]
+    I --> A["Almacenamiento local privado o Cloudinary"]
+    C --> B["Blade y layouts"]
+    B -->|HTML| N
+    N -. "enlace opcional, fuera de demo" .-> W["WhatsApp; envío a cargo del usuario"]

@@ -1,0 +1,82 @@
+erDiagram
+    users o|--o{ sessions : "sesión de usuario"
+    users o|--o{ orders : "cliente opcional"
+    products ||--o{ product_variants : "presentaciones"
+    products ||--o{ product_images : "galería"
+    products ||--o{ category_product : "clasificación"
+    categories ||--o{ category_product : "clasificación"
+    categories o|--o{ categories : "padre opcional"
+    orders ||--o{ order_items : "líneas"
+    products o|--o{ order_items : "referencia anulable"
+    product_variants o|--o{ order_items : "referencia anulable"
+    orders ||--o{ order_status_history : "historial"
+    users o|--o{ order_status_history : "changed_by"
+    orders o|--o{ notifications : "aviso por estado"
+    users o|--o{ notifications : "created_by"
+    notifications ||--o{ notification_user : "destinatarios"
+    users ||--o{ notification_user : "lectura individual"
+    users o|--o{ activity_logs : "user_id"
+    users {
+        bigint id PK
+        string email UK
+        string role
+        boolean active
+    }
+    products {
+        bigint id PK
+        string sku "index no unique"
+        string slug UK
+        string product_type
+        bigint price "centavos"
+        bigint stock "milesimas"
+    }
+    product_variants {
+        bigint id PK
+        bigint product_id FK
+        string sku
+        bigint price
+        bigint stock
+    }
+    categories {
+        bigint id PK
+        bigint parent_id FK
+        string slug UK
+    }
+    orders {
+        bigint id PK
+        bigint user_id FK
+        string order_number UK
+        string checkout_key UK
+        bigint confirmed_total
+    }
+    order_items {
+        bigint id PK
+        bigint order_id FK
+        bigint product_id FK
+        bigint product_variant_id FK
+        string product_name
+        bigint quantity
+        bigint subtotal
+    }
+    sync_runs {
+        bigint id PK
+        string source
+        string status
+        json error_details "actor y preview sin FK"
+    }
+    homepage_sections {
+        bigint id PK
+        string type
+        json settings
+        boolean active
+    }
+    banners {
+        bigint id PK
+        string image_path
+        boolean active
+    }
+    settings {
+        bigint id PK
+        string key UK
+        text value
+    }

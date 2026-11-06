@@ -1,0 +1,11 @@
+flowchart LR
+    C["Candidata validada, pendiente de publicación"] --> P["Revisión + respaldos + autorización"]
+    P --> G["Integración en codex/render-demo"]
+    G --> R["Render: deploy manual único"]
+    R --> I["Docker PHP 8.4 / Apache"]
+    I --> S["Validar entorno; migraciones; seeder idempotente; vistas"]
+    S --> W["Servicio HTTP demo"]
+    W -->|"TLS / PDO"| N[("Neon PostgreSQL: datos y sesiones")]
+    W -->|"HTTP firmado"| M["Cloudinary: imágenes authenticated"]
+    B["Navegador"] -->|HTTPS| W
+    E["Código anterior 939164e"] -. "reversión de código si hay fallo crítico" .-> R

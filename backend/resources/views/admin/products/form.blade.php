@@ -2,8 +2,9 @@
 @section('title', ($product->exists ? 'Editar producto' : 'Crear producto').' · El Nuevo Sol')
 @section('content')<h1>{{ $product->exists ? 'Editar producto' : 'Crear producto local' }}</h1><p class="subtitle">{{ $product->exists ? $product->name : 'Completá la información web del nuevo producto.' }}</p>
 
+@if($product->exists)<section class="editor-overview" aria-label="Resumen del producto">@if($primary=$product->images->sortByDesc('is_primary')->first())<img src="{{ route('admin.products.images.show',[$product,$primary]) }}" alt="{{ $primary->alt_text ?? '' }}" width="100" height="80">@else<span class="editor-no-photo">Sin fotografía</span>@endif<div><strong>{{ $product->categories->pluck('name')->join(' · ') ?: 'Sin categoría' }}</strong><nav aria-label="Secciones del editor"><a href="#product-categories">Editar categorías</a><a href="#product-images">Gestionar fotografías</a>@if($product->product_type === \App\Enums\ProductType::Variable)<a href="#variants">Editar variantes</a>@endif</nav></div></section>@endif
 <form data-editor-main method="POST" action="{{ $product->exists ? route('admin.products.update', $product) : route('admin.products.store') }}">@csrf<input type="hidden" name="_workspace" value="1"> @if($product->exists) @method('PUT') @endif
-<div class="grid"><section class="card"><h2>Información web</h2>
+<div class="grid product-editor-grid"><section class="card"><h2>Información esencial</h2>
 @can('updateIdentity', $product)
 <div class="field"><label for="name">Nombre</label><input id="name" name="name" value="{{ old('name', $product->name) }}" maxlength="255" required></div>
 <div class="field"><label for="product_type">Tipo</label><select id="product_type" name="product_type">@foreach(\App\Enums\ProductType::cases() as $option)<option value="{{ $option->value }}" @selected(old('product_type',$product->product_type->value) === $option->value)>{{ \App\Support\ProductDisplay::label($option) }}</option>@endforeach</select><small class="hint">En productos con variantes, precio y stock del padre deben quedar vacíos.</small></div>
@@ -23,7 +24,7 @@
 <input type="hidden" name="featured" value="0"><label class="check"><input type="checkbox" name="featured" value="1" @checked(old('featured',$product->featured))>Producto destacado</label></section></div></div>
 <div class="actions editor-savebar"><button type="submit">Guardar cambios</button><span data-save-state role="status">Sin cambios pendientes</span><a data-back-products href="{{ route('admin.products.index') }}">Volver al listado</a></div></form>
 @if($product->exists)
-<section data-editor-panel="categories" class="editor-panel"><h2>Categorías</h2>
+<section id="product-categories" data-editor-panel="categories" class="editor-panel"><h2>Categorías</h2>
 <details open><summary>Seleccionar categorías</summary><label for="category-search">Buscar categoría</label><input id="category-search" type="search" data-category-search placeholder="Escribí un nombre">
 @include('admin.products.categories-panel')
 </details>
@@ -33,7 +34,7 @@
 <div class="field"><label for="new-category-parent">Categoría superior</label><select id="new-category-parent" name="parent_id"><option value="">Sin categoría superior</option>@foreach($tree as $row)<option value="{{ $row['category']->id }}">{{ str_repeat('— ',$row['depth']).$row['category']->name }}</option>@endforeach</select></div>
 <input type="hidden" name="active" value="1"><input type="hidden" name="featured" value="0"><input type="hidden" name="sort_order" value="0"><button>Crear categoría</button><p class="hint">Después de crearla, seleccionála y guardá su asociación al producto.</p></form></details>@endcan
 </section>
-<section data-editor-panel="images" class="editor-panel"><h2>Fotografías</h2>@include('admin.products.images-panel')</section>
+<section id="product-images" data-editor-panel="images" class="editor-panel"><h2>Fotografías</h2>@include('admin.products.images-panel')</section>
 @if($product->product_type === \App\Enums\ProductType::Variable)
 <section id="variants" data-editor-panel="variants" class="editor-panel"><h2>Variantes</h2><p class="hint">Cada variante se guarda por separado; desactivarla conserva sus referencias históricas.</p>
 @foreach($variants as $variant)<details class="variant-editor"><summary>{{ $variant->name }} · {{ $variant->active ? 'Activa' : 'Inactiva' }} · {{ \App\Support\ProductDisplay::money($variant->price) }}</summary>@can('update',$variant)@include('admin.variants.fields')@else<p class="readonly">Variante de origen externo: solo lectura. SKU {{ $variant->sku ?? 'Sin asignar' }} · stock {{ $variant->stock ?? 'A confirmar' }}.</p>@endcan</details>@endforeach

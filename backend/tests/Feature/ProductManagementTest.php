@@ -260,4 +260,22 @@ class ProductManagementTest extends TestCase
         $this->putJson('/admin/products/'.$product->id, $this->data(['product_type' => 'invalid']))->assertUnprocessable()->assertJsonValidationErrors('product_type');
         $this->assertSame('Guardado progresivo', $product->fresh()->name);
     }
+
+    public function test_unified_relations_support_json_without_changing_their_permissions(): void
+    {
+        $product = Product::factory()->variable()->create();
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        $this->postJson('/admin/categories', ['name' => 'Categoría integrada', 'slug' => 'categoria-integrada', 'active' => '1', 'featured' => '0', 'sort_order' => '0'])
+            ->assertOk()->assertExactJson(['saved' => true]);
+        $category = Category::where('slug', 'categoria-integrada')->sole();
+        $this->putJson('/admin/products/'.$product->id.'/categories', ['category_ids' => [$category->id]])->assertOk()->assertExactJson(['saved' => true]);
+        $this->assertTrue($product->categories()->whereKey($category->id)->exists());
+        $this->postJson('/admin/products/'.$product->id.'/variants', ['name' => 'Presentación de prueba', 'active' => '1', 'purchase_mode' => 'inquiry', 'price' => '200.50', 'stock' => '2.500'])
+            ->assertOk()->assertExactJson(['saved' => true]);
+        $variant = $product->variants()->sole();
+        $this->putJson('/admin/products/'.$product->id.'/variants/'.$variant->id, ['name' => 'Presentación desactivada', 'active' => '0'])
+            ->assertOk()->assertExactJson(['saved' => true]);
+        $this->assertFalse($variant->fresh()->active);
+        $this->get('/admin/products/'.$product->id.'/edit')->assertOk()->assertSee('Presentación desactivada');
+    }
 }

@@ -1,0 +1,14 @@
+flowchart TD
+    A["Admin activo: archivo JSON de prueba"] --> B["Validar formato, tamaño y registros"]
+    B --> C["Normalizar SKU; resolver coincidencias y conflictos"]
+    C --> D["Guardar SyncRun preview: actor, 30 minutos, filas y huella"]
+    D --> E["Confirmación explícita"]
+    E --> F["Cache lock 120 s; espera 5 s"]
+    F --> G["Transacción; bloquear preview y catálogo"]
+    G --> H{"Propietario, vigencia, no aplicada y huella iguales"}
+    H -->|No| I["Rechazar; solicitar nueva revisión"]
+    H -->|Sí| J["Aplicar create/update; omitir invalid/conflict/unchanged"]
+    J --> K["Auditoría, contadores y applied_run_id"]
+    K --> L["COMMIT"]
+    J -. "excepción" .-> M["ROLLBACK; intentar registrar ejecución failed"]
+    K -. "excepción" .-> M

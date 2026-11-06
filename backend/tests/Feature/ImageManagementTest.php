@@ -288,4 +288,20 @@ class ImageManagementTest extends TestCase
         $this->assertSame($old, $category->fresh()->image_path);
         $this->assertSame([$old], Storage::disk('catalog')->allFiles());
     }
+
+    public function test_gallery_json_operations_use_existing_storage_and_validation(): void
+    {
+        $product = Product::factory()->create();
+        $this->actingAs(User::factory()->admin()->create());
+        $this->postJson($this->base($product), ['image' => UploadedFile::fake()->image('photo.png', 80, 60), 'alt_text' => 'Foto de prueba'])
+            ->assertOk()->assertExactJson(['saved' => true]);
+        $image = $product->images()->sole();
+        $this->putJson($this->base($product).'/'.$image->id, ['alt_text' => 'Texto actualizado'])->assertOk();
+        $this->postJson($this->base($product).'/'.$image->id.'/primary')->assertOk();
+        $this->postJson($this->base($product).'/'.$image->id.'/move', ['direction' => 'up'])->assertOk();
+        $this->assertSame('Texto actualizado', $image->fresh()->alt_text);
+        $this->deleteJson($this->base($product).'/'.$image->id)->assertOk()->assertExactJson(['saved' => true]);
+        $this->assertDatabaseMissing('product_images', ['id' => $image->id]);
+        Storage::disk('catalog')->assertMissing($image->path);
+    }
 }

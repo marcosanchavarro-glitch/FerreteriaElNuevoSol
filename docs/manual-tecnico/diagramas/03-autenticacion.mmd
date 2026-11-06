@@ -1,0 +1,13 @@
+flowchart TD
+    A["POST /login con CSRF"] --> B["LoginRequest y límites por IP / email"]
+    B --> C{"Credenciales válidas y active=true"}
+    C -->|No| D["Error genérico / espera de límite"]
+    C -->|Sí| E["Regenerar sesión y marca de contraseña"]
+    E --> F{"Rol"}
+    F -->|Customer| G["Mi cuenta; recursos del usuario"]
+    F -->|Admin o Seller| H["Panel administrativo"]
+    H --> I["Gate + política + campos permitidos"]
+    G --> J["auth.session + EnsureActiveUser"]
+    I --> J
+    J --> K["Acción autorizada o rechazo"]
+    L["POST /logout"] --> O["Logout, invalidar sesión y regenerar CSRF"]
