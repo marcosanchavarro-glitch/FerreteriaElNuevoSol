@@ -1,4 +1,4 @@
-<nav class="admin-nav" aria-label="Administración">
+<nav class="admin-nav" aria-label="Administración"><button type="button" class="drawer-close secondary" data-close-admin-menu>Cerrar menú</button>
 @foreach([
     ['Dashboard','admin.home','admin.home'],
     ['Productos','admin.products.index','admin.products.*'],

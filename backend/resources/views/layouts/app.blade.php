@@ -1,6 +1,6 @@
 <!doctype html>
 
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin"><title>@yield('title', 'El Nuevo Sol')</title><link rel="stylesheet" href="{{ asset('css/internal.css') }}"><link rel="stylesheet" href="{{ asset('css/orders.css') }}"><link rel="stylesheet" href="{{ asset('css/branding.css') }}?v=1"><link rel="stylesheet" href="{{ asset('css/admin.css') }}"><script src="{{ asset('js/admin.js') }}" defer></script></head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin"><title>@yield('title', 'El Nuevo Sol')</title><link rel="stylesheet" href="{{ asset('css/internal.css') }}"><link rel="stylesheet" href="{{ asset('css/orders.css') }}"><link rel="stylesheet" href="{{ asset('css/branding.css') }}?v=1"><link rel="stylesheet" href="{{ asset('css/admin.css') }}?v=3"><script src="{{ asset('js/admin.js') }}?v=3" defer></script></head>
 
 <body @can('access-admin') class="admin-workspace" @endcan>@include('components.demo-notice')<a class="skip-content" href="#main-content">Ir al contenido</a><header><div class="wrap"><a class="brand" href="{{ route('home') }}"><img class="ens-logo" src="{{ asset('images/branding/logo-primary.png') }}" alt="El Nuevo Sol · Ferretería" width="646" height="224"></a><nav aria-label="Navegación principal">
 
