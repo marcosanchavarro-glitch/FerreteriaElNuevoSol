@@ -7,6 +7,7 @@ use App\Http\Requests\VariantRequest;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Services\Catalog\VariantManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -28,9 +29,13 @@ class VariantController extends Controller
         return view('admin.variants.form', compact('product', 'variant'));
     }
 
-    public function store(VariantRequest $request, Product $product, VariantManager $manager): RedirectResponse
+    public function store(VariantRequest $request, Product $product, VariantManager $manager): RedirectResponse|JsonResponse
     {
         $variant = $manager->save($product, null, $request->variantData());
+
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
 
         return redirect()->route('admin.products.variants.show', [$product, $variant])->with('status', 'Variante creada.');
     }
@@ -49,9 +54,13 @@ class VariantController extends Controller
         return view('admin.variants.form', compact('product', 'variant'));
     }
 
-    public function update(VariantRequest $request, Product $product, ProductVariant $variant, VariantManager $manager): RedirectResponse
+    public function update(VariantRequest $request, Product $product, ProductVariant $variant, VariantManager $manager): RedirectResponse|JsonResponse
     {
         $manager->save($product, $variant, $request->variantData());
+
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
 
         return redirect()->route('admin.products.variants.show', [$product, $variant])->with('status', 'Variante actualizada.');
     }

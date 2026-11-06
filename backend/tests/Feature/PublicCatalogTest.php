@@ -8,6 +8,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\Catalog\CategoryImages;
 use App\Services\Catalog\ProductGallery;
+use App\Services\Storefront\ProductPresentation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -221,5 +222,13 @@ class PublicCatalogTest extends TestCase
     {
         $this->get('/')->assertOk()->assertSee('Ingresar');
         $this->actingAs(User::factory()->create())->get('/')->assertOk()->assertDontSee('Ingresar')->assertSee('Mi cuenta')->assertDontSee('href="'.route('admin.home').'"', false);
+    }
+
+    public function test_inquiry_offer_does_not_claim_confirmed_availability(): void
+    {
+        $product = Product::factory()->create(['purchase_mode' => 'inquiry', 'stock' => '5.000']);
+        $offer = app(ProductPresentation::class)->offer($product);
+        $this->assertSame('Consultar disponibilidad', $offer['availability']);
+        $this->assertTrue($offer['can_add']);
     }
 }

@@ -10,6 +10,7 @@ use App\Models\ProductImage;
 use App\Services\Audit\ActivityLogService;
 use App\Services\Catalog\ImageStorage;
 use App\Services\Catalog\ProductGallery;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -26,9 +27,13 @@ class ProductImageController extends Controller
         return view('admin.products.images', ['product' => $product, 'images' => $product->images()->orderBy('sort_order')->orderBy('id')->get()]);
     }
 
-    public function store(ImageUploadRequest $request, Product $product, ProductGallery $gallery): RedirectResponse
+    public function store(ImageUploadRequest $request, Product $product, ProductGallery $gallery): RedirectResponse|JsonResponse
     {
         $gallery->upload($product, $request->file('image'), $request->validated('alt_text'));
+
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
 
         return back()->with('status', 'Imagen incorporada.');
     }
@@ -40,7 +45,7 @@ class ProductImageController extends Controller
         return $storage->response($image->path, 'products/'.$product->id);
     }
 
-    public function update(ImageUpdateRequest $request, Product $product, ProductImage $image): RedirectResponse
+    public function update(ImageUpdateRequest $request, Product $product, ProductImage $image): RedirectResponse|JsonResponse
     {
         DB::transaction(function () use ($request, $product, $image): void {
             Product::whereKey($product->id)->update(['updated_at' => now()]);
@@ -50,30 +55,46 @@ class ProductImageController extends Controller
             $audit->record('images', 'updated', $product->id, $before, $audit->gallery($product));
         });
 
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
+
         return back()->with('status', 'Texto alternativo guardado.');
     }
 
-    public function primary(Product $product, ProductImage $image, ProductGallery $gallery): RedirectResponse
+    public function primary(Request $request, Product $product, ProductImage $image, ProductGallery $gallery): RedirectResponse|JsonResponse
     {
         Gate::authorize('update', $product);
         $gallery->primary($product, $image);
 
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
+
         return back()->with('status', 'Imagen principal actualizada.');
     }
 
-    public function move(Request $request, Product $product, ProductImage $image, ProductGallery $gallery): RedirectResponse
+    public function move(Request $request, Product $product, ProductImage $image, ProductGallery $gallery): RedirectResponse|JsonResponse
     {
         Gate::authorize('update', $product);
         $data = $request->validate(['direction' => ['required', 'in:up,down']]);
         $gallery->move($product, $image, $data['direction']);
 
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
+
         return back()->with('status', 'Orden actualizado.');
     }
 
-    public function destroy(Product $product, ProductImage $image, ProductGallery $gallery): RedirectResponse
+    public function destroy(Request $request, Product $product, ProductImage $image, ProductGallery $gallery): RedirectResponse|JsonResponse
     {
         Gate::authorize('update', $product);
         $gallery->delete($product, $image);
+
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
 
         return back()->with('status', 'Imagen eliminada.');
     }

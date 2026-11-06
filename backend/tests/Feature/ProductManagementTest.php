@@ -4,11 +4,13 @@ namespace Tests\Feature;
 
 use App\Enums\ProductStatus;
 use App\Enums\UserRole;
+use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -183,5 +185,79 @@ class ProductManagementTest extends TestCase
     {
         $product = Product::factory()->create(['name' => '<script>alert(1)</script>', 'description' => '<img src=x onerror=alert(1)>']);
         $this->actingAs(User::factory()->seller()->create())->get('/admin/products/'.$product->id)->assertOk()->assertDontSee('<script>alert(1)</script>', false)->assertSee('&lt;script&gt;', false)->assertDontSee('<img src=x', false);
+    }
+
+    public function test_product_workspace_filters_and_unified_editor(): void
+    {
+        $user = User::factory()->create(['role' => UserRole::Admin]);
+        $category = Category::factory()->create();
+        $match = Product::factory()->create(['name' => 'Cable seleccionado', 'stock' => '2.500', 'featured' => true, 'purchase_mode' => 'calculated', 'status' => 'published']);
+        $match->categories()->attach($category);
+        Product::factory()->create(['name' => 'Producto excluido', 'stock' => null, 'featured' => false]);
+        $this->actingAs($user)->get('/admin/products?'.http_build_query(['q' => 'Cable', 'category' => $category->id, 'mode' => 'calculated', 'status' => 'published', 'availability' => 'available', 'featured' => '1', 'sort' => 'name']))
+            ->assertOk()->assertViewHas('products', fn ($products) => $products->total() === 1 && $products->first()->is($match));
+        $this->get('/admin/products?availability=unknown')->assertOk()->assertViewHas('products', fn ($products) => $products->total() === 1);
+        $this->get('/admin/products?availability=empty')->assertOk()->assertViewHas('products', fn ($products) => $products->total() === 0);
+        $this->get('/admin/products/'.$match->id.'/edit')->assertOk()->assertSee('data-editor-panel="categories"', false)->assertSee('data-editor-panel="images"', false);
+        $this->get('/admin/products?availability=invalid')->assertSessionHasErrors('availability');
+    }
+
+    public function test_quick_actions_authorize_audit_and_preserve_commercial_values(): void
+    {
+        $product = Product::factory()->create(['external_id' => 'external-test', 'price' => 1000, 'stock' => '4.000', 'featured' => false, 'status' => 'draft']);
+        $this->actingAs(User::factory()->create())->post('/admin/products/'.$product->id.'/quick', ['action' => 'featured'])->assertForbidden();
+        $this->flushSession();
+        $this->actingAs(User::factory()->create(['role' => UserRole::Seller]));
+        $this->post('/admin/products/'.$product->id.'/quick', ['action' => 'featured', 'price' => '0'])->assertRedirect();
+        $this->assertTrue($product->fresh()->featured);
+        $this->assertSame(1000, $product->fresh()->price);
+        $this->assertSame('4.000', $product->fresh()->stock);
+        $this->assertDatabaseHas('activity_logs', ['module' => 'products', 'entity_id' => $product->id]);
+        $product->update(['price' => null, 'purchase_mode' => 'calculated']);
+        $this->post('/admin/products/'.$product->id.'/quick', ['action' => 'visibility'])->assertSessionHasErrors('status');
+        $this->assertSame(ProductStatus::Draft, $product->fresh()->status);
+    }
+
+    public function test_product_list_query_count_does_not_grow_per_product(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        Product::factory()->create();
+        DB::enableQueryLog();
+        $this->get('/admin/products')->assertOk();
+        $first = count(DB::getQueryLog());
+        if (getenv('ENS_PROFILE')) {
+            fwrite(STDERR, 'SQL listado 1 producto: '.$first.' consultas, '.array_sum(array_column(DB::getQueryLog(), 'time')).' ms'.PHP_EOL);
+        }
+        DB::disableQueryLog();
+        Product::factory()->count(10)->create();
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+        $this->get('/admin/products')->assertOk();
+        $this->assertLessThanOrEqual($first, count(DB::getQueryLog()));
+        if (getenv('ENS_PROFILE')) {
+            fwrite(STDERR, 'SQL listado 11 productos: '.count(DB::getQueryLog()).' consultas, '.array_sum(array_column(DB::getQueryLog(), 'time')).' ms'.PHP_EOL);
+        }
+        DB::disableQueryLog();
+    }
+
+    public function test_simple_editor_does_not_query_unused_variants(): void
+    {
+        $product = Product::factory()->create();
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        DB::enableQueryLog();
+        $this->get('/admin/products/'.$product->id.'/edit')->assertOk();
+        $this->assertFalse(collect(DB::getQueryLog())->contains(fn ($query) => str_contains($query['query'], 'product_variants')));
+        DB::disableQueryLog();
+    }
+
+    public function test_editor_json_save_confirms_commit_without_render_redirect(): void
+    {
+        $product = Product::factory()->create();
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        $this->putJson('/admin/products/'.$product->id, $this->data(['name' => 'Guardado progresivo']))
+            ->assertOk()->assertExactJson(['saved' => true])->assertHeaderMissing('Location');
+        $this->assertSame('Guardado progresivo', $product->fresh()->name);
+        $this->putJson('/admin/products/'.$product->id, $this->data(['product_type' => 'invalid']))->assertUnprocessable()->assertJsonValidationErrors('product_type');
+        $this->assertSame('Guardado progresivo', $product->fresh()->name);
     }
 }

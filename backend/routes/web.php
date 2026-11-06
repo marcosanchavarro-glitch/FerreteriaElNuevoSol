@@ -88,6 +88,7 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
         Route::get('orders', [App\Http\Controllers\Admin\OrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [App\Http\Controllers\Admin\OrderController::class, 'show'])->whereNumber('order')->name('orders.show');
         Route::patch('orders/{order}/status', [App\Http\Controllers\Admin\OrderController::class, 'update'])->whereNumber('order')->name('orders.update');
+        Route::post('products/{product}/quick', [ProductController::class, 'quickUpdate'])->name('products.quick');
         Route::resource('products', ProductController::class)->except('destroy');
         Route::resource('categories', CategoryController::class)->except(['show', 'destroy']);
         Route::post('categories/{category}/image', [CategoryImageController::class, 'store'])->name('categories.image.store');

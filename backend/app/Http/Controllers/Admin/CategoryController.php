@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CategoryRequest;
 use App\Models\Category;
 use App\Services\Catalog\CategoryManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
@@ -26,9 +27,13 @@ class CategoryController extends Controller
         return view('admin.categories.form', ['category' => new Category(['active' => true, 'featured' => false, 'sort_order' => 0]), 'tree' => $manager->tree()]);
     }
 
-    public function store(CategoryRequest $request, CategoryManager $manager): RedirectResponse
+    public function store(CategoryRequest $request, CategoryManager $manager): RedirectResponse|JsonResponse
     {
         $category = $manager->save(new Category, $request->validated());
+
+        if ($request->expectsJson()) {
+            return response()->json(['saved' => true]);
+        }
 
         return redirect()->route('admin.categories.edit', $category)->with('status', 'Categoría creada.');
     }

@@ -31,7 +31,7 @@ class ProductPresentation
         $price = $variant ? $variant->price : $product->price;
         $stock = $variant ? $variant->stock : $product->stock;
 
-        return ['step' => Cart::fractional($variant ? $variant->effectiveSaleUnit() : $product->sale_unit) ? '1' : '1000', 'can_add' => $mode === PurchaseMode::Inquiry || $this->availability($stock) !== 'Sin stock', 'id' => $variant?->id, 'name' => $variant?->name ?? $product->name, 'sku' => $variant ? $variant->sku : $product->sku, 'price' => $mode === PurchaseMode::Calculated && $price !== null ? ProductDisplay::money($price) : 'Precio a confirmar', 'unit' => ProductDisplay::label($variant ? $variant->effectiveSaleUnit() : $product->sale_unit), 'availability' => $this->availability($stock), 'mode' => ProductDisplay::label($mode)];
+        return ['step' => Cart::fractional($variant ? $variant->effectiveSaleUnit() : $product->sale_unit) ? '1' : '1000', 'can_add' => $mode === PurchaseMode::Inquiry || $this->availability($stock) !== 'Sin stock', 'id' => $variant?->id, 'name' => $variant?->name ?? $product->name, 'sku' => $variant ? $variant->sku : $product->sku, 'price' => $mode === PurchaseMode::Calculated && $price !== null ? ProductDisplay::money($price) : 'Precio a confirmar', 'unit' => ProductDisplay::label($variant ? $variant->effectiveSaleUnit() : $product->sale_unit), 'availability' => $mode === PurchaseMode::Inquiry ? 'Consultar disponibilidad' : $this->availability($stock), 'mode' => ProductDisplay::label($mode)];
     }
 
     public function card(Product $product): array
