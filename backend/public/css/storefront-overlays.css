@@ -81,3 +81,79 @@ html:has(.ens-overlay[open]){overflow:hidden}
  .ens-header .ens-nav a{min-height:44px;padding:10px 12px;color:white}
  .ens-header button:focus-visible,.ens-header summary:focus-visible{outline:3px solid #f47b42;outline-offset:2px}
 }
+/* Account access: a compact form with one clear primary action. */
+.ens-auth-dialog{width:460px;max-width:calc(100% - 24px);max-height:calc(100dvh - 32px);padding:28px 32px 24px;border-radius:20px;font-size:15px;line-height:1.5;color:#263372}
+.ens-auth-dialog .ens-auth-heading{margin:0 0 22px;gap:12px}
+.ens-auth-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.ens-auth-brand img{width:40px;height:34px;object-fit:contain}
+.ens-auth-brand span{font-size:14px;letter-spacing:0;font-weight:700;line-height:1.25;color:#263372}.ens-auth-brand small{display:block;font-size:9px;letter-spacing:.14em;font-weight:500;color:#738097;margin-top:3px}
+.ens-auth-dialog .ens-overlay-close{width:40px;height:40px;background:#f4f5f9;color:#526079;border-radius:12px}
+.ens-auth-dialog .ens-overlay-close:hover{background:#e8ecf5;color:#263372}
+.ens-auth-dialog .ens-overlay-close svg{width:20px;height:20px}
+.ens-auth-dialog #ens-auth-title{margin:0 0 6px;font-size:26px;line-height:1.25;letter-spacing:-.025em;font-weight:750;color:#1f2b60}
+.ens-auth-dialog .ens-auth-intro{font-size:14px;color:#677187;margin:0 0 24px;line-height:1.6}
+.ens-auth-dialog .ens-auth-switch{display:flex;gap:4px;padding:4px;background:#f1f3f8;border:1px solid #e6e9f0;border-radius:11px;margin-bottom:24px}
+.ens-auth-dialog .ens-auth-switch button{appearance:none;display:block;flex:1;min-width:0;min-height:42px;margin:0;padding:9px 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:#59647a;font:inherit;font-size:14px;font-weight:600;line-height:1.4;opacity:1;cursor:pointer;box-shadow:none}
+.ens-auth-dialog .ens-auth-switch button[aria-pressed=true]{background:#fff;color:#263372;border-color:#e1e5ef;box-shadow:0 2px 4px #1c285a0b}
+.ens-auth-dialog .ens-auth-switch button[aria-pressed=false]:hover{background:#e7ebf4;color:#263372}
+.ens-auth-dialog .ens-auth-fields{padding:0;margin:0;border:0;box-shadow:none;background:transparent;width:100%;max-width:none}
+.ens-auth-dialog .ens-auth-fields form{display:grid;gap:16px;margin:0}
+.ens-auth-dialog .field{margin:0;min-width:0}
+.ens-auth-dialog label{display:block;margin:0 0 7px;color:#34415d;font-size:13px;font-weight:600;line-height:1.5}
+.ens-auth-dialog input:not([type=checkbox]){appearance:none;width:100%;min-height:46px;height:46px;margin:0;padding:10px 13px;background:#fff;color:#22304e;font:inherit;font-size:16px;line-height:24px;border:1px solid #ccd3e0;border-radius:9px;box-shadow:0 1px 2px #18234b04;outline:none}
+.ens-auth-dialog input:not([type=checkbox]):hover{border-color:#9ba8c2}
+.ens-auth-dialog input:not([type=checkbox]):focus-visible{border-color:#34478b;outline:2px solid #34478b26;outline-offset:1px}
+.ens-auth-dialog .ens-auth-options{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:0}
+.ens-auth-dialog .ens-auth-options .check{display:inline-flex;align-items:center;gap:8px;margin:0;font-size:13px;font-weight:400;color:#526079;min-height:28px;cursor:pointer}
+.ens-auth-dialog input[type=checkbox]{width:17px;height:17px;margin:0;accent-color:#263372;flex-shrink:0}
+.ens-auth-dialog a{color:#263372;text-decoration:underline;text-underline-offset:3px;font-size:13px;font-weight:500}
+.ens-auth-dialog .ens-auth-options a{text-decoration:none}
+.ens-auth-dialog a:hover{text-decoration:underline}
+.ens-auth-dialog form>button[type=submit]{min-height:46px;margin:4px 0 0;padding:12px 18px;background:#263372;color:#fff;border:1px solid #263372;border-radius:9px;font:inherit;font-size:14px;font-weight:650;line-height:20px;box-shadow:0 3px 7px #26337212}
+.ens-auth-dialog form>button[type=submit]:hover{background:#1c285a}
+.ens-auth-dialog form>button[type=submit]:disabled{opacity:.65;cursor:wait}
+.ens-auth-dialog .ens-auth-register-link{display:none}
+.ens-auth-dialog .hint{display:block;margin-top:6px;font-size:12px;line-height:1.5;color:#68748b}
+.ens-auth-dialog .ens-auth-note{margin:22px 0 0;padding-top:18px;border-top:1px solid #edf0f5;text-align:center;font-size:12px;line-height:1.6;color:#738097}
+.ens-auth-dialog .ens-overlay-status:not(:empty){margin:0 0 18px;padding:10px 12px;border-radius:8px;background:#f3f5fa;font-size:13px;color:#526079}
+.ens-auth-dialog .ens-overlay-status[data-error]{background:#fff3ee;color:#9c381b;border-left:3px solid #d2633f}
+.ens-auth-dialog[data-mode=register] .ens-auth-fields form{grid-template-columns:1fr 1fr;gap:14px 12px}
+.ens-auth-dialog[data-mode=register] form>.field:nth-of-type(n+3),.ens-auth-dialog[data-mode=register] form>button{grid-column:1/-1}
+@media(max-width:480px){
+ .ens-auth-dialog{padding:22px 22px 20px;max-height:calc(100dvh - 24px);border-radius:18px}
+ .ens-auth-dialog .ens-auth-heading{margin-bottom:18px}
+ .ens-auth-dialog #ens-auth-title{font-size:24px}
+ .ens-auth-dialog .ens-auth-intro{font-size:13px;margin-bottom:20px}
+ .ens-auth-dialog .ens-auth-switch{margin-bottom:20px}
+ .ens-auth-dialog .ens-auth-note{font-size:12px;margin-top:20px;padding-top:15px}
+}
+/* Keep scrolling inside the rounded panel, away from its close control. */
+.ens-overlay{scrollbar-width:thin;scrollbar-color:#bfc7d8 transparent}
+.ens-overlay::-webkit-scrollbar,.ens-auth-scroll::-webkit-scrollbar{width:7px;height:7px}
+.ens-overlay::-webkit-scrollbar-track,.ens-auth-scroll::-webkit-scrollbar-track{background:transparent;margin-block:20px}
+.ens-overlay::-webkit-scrollbar-thumb,.ens-auth-scroll::-webkit-scrollbar-thumb{background:#bfc7d8;border:2px solid transparent;background-clip:padding-box;border-radius:20px}
+.ens-overlay::-webkit-scrollbar-thumb:hover,.ens-auth-scroll::-webkit-scrollbar-thumb:hover{background:#8d9ab4;background-clip:padding-box}
+.ens-auth-dialog[open]{display:flex;flex-direction:column;overflow:hidden}
+.ens-auth-dialog>.ens-auth-heading,.ens-auth-dialog>#ens-auth-title,.ens-auth-dialog>.ens-auth-intro,.ens-auth-dialog>.ens-auth-switch,.ens-auth-dialog>.ens-overlay-status,.ens-auth-dialog>.ens-auth-note{flex-shrink:0}
+.ens-auth-scroll{min-height:0;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:thin;scrollbar-color:#bfc7d8 transparent;padding:3px 8px 5px 3px;margin:0 -8px 0 -3px}
+.ens-auth-scroll:has(input:focus-visible){scroll-padding-block:12px}
+@media(max-width:480px){.ens-auth-dialog[data-mode=register]{max-height:calc(100dvh - 24px)}.ens-auth-dialog[data-mode=register] .ens-auth-note{margin-top:14px;padding-top:12px}.ens-auth-dialog[data-mode=register] .ens-auth-intro{margin-bottom:16px}.ens-auth-dialog[data-mode=register] .ens-auth-switch{margin-bottom:16px}}
+.ens-cart-drawer .ens-overlay-head{position:sticky;top:-24px;padding:12px 0;background:white;z-index:2;border-bottom:1px solid #edf0f5}
+.ens-cart-drawer form>button.ens-remove{background:transparent;color:#9b3b25;border:0;width:auto;padding:6px 0;margin:0;box-shadow:none;font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.ens-cart-drawer .ens-cart-update[data-auto-update] button[type=submit]{display:none}
+.ens-cart-drawer .ens-cart-update[data-auto-update]{grid-template-columns:1fr}
+.ens-cart-drawer .ens-cart-line{gap:10px}
+@media(max-width:480px){.ens-cart-drawer .ens-overlay-head{top:-18px}}
+.ens-account-dialog .ens-account-welcome .ens-empty{padding:0;margin:12px 0 0;border:0;border-radius:0;min-height:0;background:transparent;box-shadow:none;text-align:left}
+.ens-account-dialog .ens-account-welcome .ens-empty p{margin:0 0 8px}
+.ens-account-dialog .ens-account-welcome .ens-empty a{font-size:14px}
+@media(max-width:480px){.ens-account-dialog .ens-account-welcome{padding:14px}.ens-account-dialog .ens-account-nav{gap:6px}.ens-account-dialog .ens-account-nav a,.ens-account-dialog .ens-account-nav button{font-size:13px;padding:8px 10px}.ens-account-dialog .ens-account-nav form>button{min-height:36px;padding:6px 10px}}
+.ens-quick-card:has(.ens-category-thumbnail){position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-end;min-height:230px;padding:24px;overflow:hidden;border:0;border-radius:16px;background:#263372;text-align:left;box-shadow:0 7px 20px #18244718}
+.ens-quick-card .ens-category-thumbnail{position:absolute;inset:0;z-index:-2;display:block;width:100%;height:100%;aspect-ratio:auto;object-fit:cover;object-position:center;padding:0;margin:0;border-radius:0;transition:transform .2s ease}
+.ens-quick-card:has(.ens-category-thumbnail)::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,#10193400 25%,#111c3b55 55%,#111c3be8 100%);pointer-events:none}
+.ens-quick-card:has(.ens-category-thumbnail)>strong{margin:0;color:white;font-size:21px;font-weight:700;line-height:1.25;text-shadow:0 1px 3px #0004}
+.ens-quick-card:has(.ens-category-thumbnail)>span{margin:8px 0 0;color:#fff;font-size:13px;line-height:1.4}
+.ens-quick-card:has(.ens-category-thumbnail):hover .ens-category-thumbnail{transform:scale(1.035)}
+.ens-quick-card:focus-visible{outline:3px solid #f47b42;outline-offset:4px}
+@media(max-width:480px){.ens-quick-card:has(.ens-category-thumbnail){min-height:210px;padding:20px}.ens-quick-card:has(.ens-category-thumbnail)>strong{font-size:20px}}
+@media(prefers-reduced-motion:reduce){.ens-quick-card .ens-category-thumbnail{transition:none}}

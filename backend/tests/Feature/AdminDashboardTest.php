@@ -15,6 +15,12 @@ class AdminDashboardTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['shop.order_status_tracking_enabled' => true]);
+    }
+
     public static function staff(): array
     {
         return [['admin'], ['seller']];

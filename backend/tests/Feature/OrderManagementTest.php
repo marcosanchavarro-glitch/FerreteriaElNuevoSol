@@ -19,6 +19,27 @@ class OrderManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_disabled_tracking_hides_workflow_and_rejects_state_changes_without_losing_orders(): void
+    {
+        config(['shop.order_status_tracking_enabled' => false]);
+        $admin = User::factory()->admin()->create();
+        $order = Order::factory()->create(['user_id' => $admin->id, 'status' => 'received']);
+        $other = Order::factory()->create(['status' => 'preparing']);
+        $this->actingAs($admin)->get(route('admin.home'))->assertOk()->assertSee('Pedidos web')->assertDontSee('Listos para retirar');
+        $this->get(route('admin.orders.index', ['status' => 'preparing']))->assertOk()->assertSee($order->order_number)->assertSee($other->order_number)->assertDontSee('id="order-status"', false);
+        $this->get(route('admin.orders.show', $order))->assertOk()->assertDontSee('Cambiar estado')->assertDontSee('Pasar a')->assertDontSee('Estado:');
+        $this->patch(route('admin.orders.update', $order), ['expected_status' => 'received', 'status' => 'preparing'])->assertForbidden();
+        $this->get(route('account.orders.show', $order))->assertOk()->assertDontSee('Progreso del pedido')->assertDontSee('Historial de estados')->assertDontSee('Estado:');
+        $this->assertSame('received', $order->fresh()->status->value);
+        $this->assertDatabaseCount('orders', 2);
+    }
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['shop.order_status_tracking_enabled' => true]);
+    }
+
     public static function staffRoles(): array
     {
         return [['admin'], ['seller']];

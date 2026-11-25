@@ -8,6 +8,6 @@
 <div class="field"><label for="profile_current_password">Contraseña actual, si cambiás el email</label><input id="profile_current_password" name="current_password" type="password" autocomplete="current-password"></div><button type="submit">Guardar datos</button></form></section>
 <section class="card"><h2>Cambiar contraseña</h2><form method="POST" action="{{ route('admin.profile.password') }}">@csrf @method('PUT')
 <div class="field"><label for="current_password">Contraseña actual</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password"></div>
-<div class="field"><label for="password">Nueva contraseña</label><input id="password" name="password" type="password" required minlength="12" maxlength="72" autocomplete="new-password"><small class="hint">Al menos 12 caracteres, con letras y números.</small></div>
+<div class="field"><label for="password">Nueva contraseña</label><input id="password" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password"><small class="hint">Al menos 8 caracteres, con letras y números.</small></div>
 <div class="field"><label for="password_confirmation">Repetir nueva contraseña</label><input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password"></div><button type="submit">Actualizar contraseña</button></form></section></div>@endsection
 

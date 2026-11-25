@@ -19,6 +19,6 @@ class OrderPolicy
 
     public function update(User $user, Order $order): bool
     {
-        return $this->viewAny($user);
+        return (bool) config('shop.order_status_tracking_enabled') && $this->viewAny($user);
     }
 }

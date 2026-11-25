@@ -14,6 +14,12 @@ class CustomerOrdersTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['shop.order_status_tracking_enabled' => true]);
+    }
+
     public function test_customer_dashboard_and_pagination_only_include_own_orders(): void
     {
         $user = User::factory()->create();

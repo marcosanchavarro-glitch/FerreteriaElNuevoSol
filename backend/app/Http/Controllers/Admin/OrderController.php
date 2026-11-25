@@ -20,6 +20,9 @@ class OrderController extends Controller
     {
         Gate::authorize('viewAny', Order::class);
         $filters = $request->validated();
+        if (! config('shop.order_status_tracking_enabled')) {
+            unset($filters['status']);
+        }
         $query = Order::query();
         foreach (preg_split('/\s+/u', trim($filters['q'] ?? ''), -1, PREG_SPLIT_NO_EMPTY) as $term) {
             $query->where(function (Builder $search) use ($term): void {

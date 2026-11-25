@@ -16,6 +16,14 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_registration_accepts_eight_characters_but_rejects_seven(): void
+    {
+        $data = ['first_name' => 'Ana', 'last_name' => 'Prueba', 'email' => 'eight@example.test'];
+        $this->postJson('/registro', $data + ['password' => 'Clave12', 'password_confirmation' => 'Clave12'])->assertUnprocessable()->assertJsonValidationErrors('password');
+        $this->postJson('/registro', $data + ['password' => 'Clave123', 'password_confirmation' => 'Clave123'])->assertCreated();
+        $this->assertTrue(Hash::check('Clave123', User::sole()->password));
+    }
+
     public function test_popup_login_preserves_cart_and_returns_json_without_redirect(): void
     {
         $user = User::factory()->create();
@@ -180,9 +188,9 @@ class AuthenticationTest extends TestCase
         });
         $this->assertNotNull($token);
         $this->get(route('password.reset', ['token' => $token, 'email' => $user->email]))->assertOk();
-        $data = ['email' => $user->email, 'token' => $token, 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!'];
+        $data = ['email' => $user->email, 'token' => $token, 'password' => 'Clave123', 'password_confirmation' => 'Clave123'];
         $this->post('/restablecer-contrasena', $data)->assertRedirect('/login');
-        $this->assertTrue(Hash::check('Replacement2026!', $user->fresh()->password));
+        $this->assertTrue(Hash::check('Clave123', $user->fresh()->password));
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);
         $this->post('/restablecer-contrasena', $data)->assertSessionHasErrors('email');
     }
@@ -208,7 +216,7 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
         $before = $user->password;
-        $data = ['email' => $user->email, 'token' => 'invalid', 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!'];
+        $data = ['email' => $user->email, 'token' => 'invalid', 'password' => 'Clave123', 'password_confirmation' => 'Clave123'];
         $this->post('/restablecer-contrasena', $data)->assertSessionHasErrors('email')->assertSessionMissing('_old_input.token')->assertSessionMissing('_old_input.password');
         $data['token'] = Password::createToken($user);
         $this->travel(61)->minutes();
@@ -223,7 +231,7 @@ class AuthenticationTest extends TestCase
         $user->active = false;
         $user->save();
         $before = $user->password;
-        $this->post('/restablecer-contrasena', ['email' => $user->email, 'token' => $token, 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!'])->assertSessionHasErrors('email');
+        $this->post('/restablecer-contrasena', ['email' => $user->email, 'token' => $token, 'password' => 'Clave123', 'password_confirmation' => 'Clave123'])->assertSessionHasErrors('email');
         $this->assertSame($before, $user->fresh()->password);
     }
 
@@ -232,7 +240,7 @@ class AuthenticationTest extends TestCase
         $user = User::factory()->create();
         $oldHash = $user->password;
         $token = Password::createToken($user);
-        $this->post('/restablecer-contrasena', ['email' => $user->email, 'token' => $token, 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!'])->assertRedirect('/login');
+        $this->post('/restablecer-contrasena', ['email' => $user->email, 'token' => $token, 'password' => 'Clave123', 'password_confirmation' => 'Clave123'])->assertRedirect('/login');
         $this->actingAs($user->fresh())->withSession(['password_hash_web' => $oldHash])->get('/mi-cuenta')->assertRedirect('/login');
         $this->assertGuest();
     }

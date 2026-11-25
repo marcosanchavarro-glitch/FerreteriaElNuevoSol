@@ -5,7 +5,7 @@
 <details class="product-filter-panel" open><summary>Búsqueda y filtros</summary><form class="card product-filters" method="GET" action="{{ route('admin.products.index') }}">
 <div class="field"><label for="q">Nombre o SKU</label><input id="q" name="q" value="{{ $query }}" maxlength="100" placeholder="Buscar productos"></div>
 @foreach(['category'=>['Categoría',$categories->pluck('name','id')->all()], 'mode'=>['Modalidad',['inquiry'=>'Catálogo por consulta','calculated'=>'Con controles de stock']], 'status'=>['Publicación',['draft'=>'Borrador','published'=>'Publicado','private'=>'Privado']], 'availability'=>['Disponibilidad',['available'=>'Stock disponible','empty'=>'Stock cero','unknown'=>'Stock desconocido']], 'featured'=>['Destacado',['1'=>'Sí','0'=>'No']], 'sort'=>['Orden',['newest'=>'Más recientes','name'=>'Nombre','oldest'=>'Más antiguos']]] as $key=>[$label,$options])
-<div class="field"><label for="filter-{{ $key }}">{{ $label }}</label><select id="filter-{{ $key }}" name="{{ $key }}"><option value="">{{ $key === 'sort' ? 'Más recientes' : 'Todos' }}</option>@foreach($options as $value=>$text)<option value="{{ $value }}" @selected((string)($filters[$key] ?? '') === (string)$value)>{{ $text }}</option>@endforeach</select></div>
+<div class="field"><label for="filter-{{ $key }}">{{ $label }}</label><select id="filter-{{ $key }}" name="{{ $key }}">@if($key !== 'sort')<option value="">Todos</option>@endif @foreach($options as $value=>$text)<option value="{{ $value }}" @selected((string)($filters[$key] ?? '') === (string)$value)>{{ $text }}</option>@endforeach</select></div>
 @endforeach
 <div class="actions"><button>Aplicar filtros</button><a href="{{ route('admin.products.index') }}">Limpiar</a></div>
 </form></details>

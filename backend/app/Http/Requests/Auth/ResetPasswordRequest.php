@@ -11,7 +11,7 @@ class ResetPasswordRequest extends PasswordEmailRequest
     {
         return array_merge(parent::rules(), [
             'token' => ['required', 'string', 'max:255'],
-            'password' => ['required', 'string', 'max:72', new PasswordInput, 'confirmed', Password::min(12)->letters()->numbers()],
+            'password' => ['required', 'string', 'max:72', new PasswordInput, 'confirmed', Password::min(8)->letters()->numbers()],
         ]);
     }
 }

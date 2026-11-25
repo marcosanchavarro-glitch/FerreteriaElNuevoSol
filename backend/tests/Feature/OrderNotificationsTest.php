@@ -18,6 +18,24 @@ class OrderNotificationsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['shop.order_status_tracking_enabled' => true]);
+    }
+
+    public function test_popup_read_actions_return_counts_and_protect_other_users_notifications(): void
+    {
+        $user = User::factory()->create();
+        $one = $this->notice($user);
+        $this->notice($user);
+        $other = $this->notice(User::factory()->create());
+        $this->actingAs($user)->patchJson(route('account.notifications.read', $other))->assertNotFound();
+        $this->patchJson(route('account.notifications.read', $one))->assertOk()->assertJsonPath('unread', 1)->assertJsonStructure(['message', 'csrf_token']);
+        $this->postJson(route('account.notifications.read-all'))->assertOk()->assertJsonPath('unread', 0);
+        $this->assertNull($other->users()->first()->pivot->read_at);
+    }
+
     private function notice(User $user, array $attributes = []): Notification
     {
         $notification = Notification::factory()->create($attributes + ['active' => true, 'published_at' => now()]);

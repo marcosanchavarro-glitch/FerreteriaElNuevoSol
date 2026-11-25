@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\VariantController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Auth\RegistrationController;
@@ -58,6 +59,10 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     });
     Route::prefix('admin')->name('admin.')->middleware('can:access-admin')->group(function (): void {
         Route::get('/', DashboardController::class)->name('home');
+        Route::middleware('can:manage-roles')->group(function (): void {
+            Route::get('/users', [UserController::class, 'index'])->name('users.index');
+            Route::patch('/users/{user}', [UserController::class, 'update'])->whereNumber('user')->name('users.update');
+        });
         Route::middleware('can:manage-commercial-sync')->prefix('commercial-sync')->name('sync.')->group(function (): void {
             Route::get('/', [CommercialSyncController::class, 'index'])->name('index');
             Route::post('/preview', [CommercialSyncController::class, 'preview'])->name('preview');

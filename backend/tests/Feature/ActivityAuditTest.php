@@ -143,6 +143,7 @@ class ActivityAuditTest extends TestCase
 
     public function test_order_status_audit_is_minimal_and_consistent_with_history(): void
     {
+        config(['shop.order_status_tracking_enabled' => true]);
         $this->actingAs(User::factory()->admin()->create());
         $order = Order::factory()->create();
         $this->patch('/admin/orders/'.$order->id.'/status', ['expected_status' => 'received', 'status' => 'preparing'])->assertSessionHasNoErrors();

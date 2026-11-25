@@ -27,9 +27,9 @@ class ProfileSecurityTest extends TestCase
     {
         $user = User::factory()->create();
         $this->actingAs($user)->withSession(['_token' => 'previous-csrf-token'])->putJson(route('account.password'), [
-            'current_password' => 'SoloDesarrollo!2026', 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!',
+            'current_password' => 'SoloDesarrollo!2026', 'password' => 'Clave123', 'password_confirmation' => 'Clave123',
         ])->assertOk()->assertJsonStructure(['message', 'csrf_token'])->assertJsonPath('csrf_token', fn ($token) => $token !== 'previous-csrf-token');
-        $this->assertTrue(Hash::check('Replacement2026!', $user->fresh()->password));
+        $this->assertTrue(Hash::check('Clave123', $user->fresh()->password));
         $this->get(route('account.edit'))->assertOk();
     }
 
@@ -91,10 +91,10 @@ class ProfileSecurityTest extends TestCase
     public function test_change_password_requires_current_password_and_keeps_current_session(): void
     {
         $user = User::factory()->create();
-        $data = ['current_password' => 'Wrong2026!', 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!'];
+        $data = ['current_password' => 'Wrong2026!', 'password' => 'Clave123', 'password_confirmation' => 'Clave123'];
         $this->actingAs($user)->put('/mi-cuenta/contrasena', $data)->assertSessionHasErrors('current_password')->assertSessionMissing('_old_input.current_password');
         $this->put('/mi-cuenta/contrasena', [...$data, 'current_password' => 'SoloDesarrollo!2026'])->assertSessionHasNoErrors();
-        $this->assertTrue(Hash::check('Replacement2026!', $user->fresh()->password));
+        $this->assertTrue(Hash::check('Clave123', $user->fresh()->password));
         $this->get('/mi-cuenta')->assertOk();
     }
 
@@ -102,7 +102,7 @@ class ProfileSecurityTest extends TestCase
     {
         $user = User::factory()->create();
         $other = User::factory()->create();
-        $this->actingAs($user)->put('/mi-cuenta/contrasena', ['user_id' => $other->id, 'current_password' => 'SoloDesarrollo!2026', 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!'])->assertForbidden();
+        $this->actingAs($user)->put('/mi-cuenta/contrasena', ['user_id' => $other->id, 'current_password' => 'SoloDesarrollo!2026', 'password' => 'Clave123', 'password_confirmation' => 'Clave123'])->assertForbidden();
         $this->assertTrue(Hash::check('SoloDesarrollo!2026', $other->fresh()->password));
     }
 }

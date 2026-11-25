@@ -77,7 +77,7 @@
       const parts = text.split('.');
       const scaled = Number(parts[0]) * 1000 + Number((parts[1] || '').padEnd(3, '0'));
       const step = Number(input.dataset.step || '1000');
-      const next = Math.max(step, Math.min(9999999, scaled + Number(button.dataset.delta) * step));
+      const next = Math.max(step, Math.min(step === 1000 ? 9999000 : 9999999, scaled + Number(button.dataset.delta) * step));
       input.value = (Math.floor(next / 1000) + '.' + String(next % 1000).padStart(3, '0')).replace(/\.?0+$/, '');
     }));
   });

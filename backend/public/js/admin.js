@@ -1,3 +1,23 @@
+const adminBusyForms = new Map();
+const setAdminFormBusy = (form, label = 'Guardando…') => {
+ if (adminBusyForms.has(form)) return;
+ const buttons = [...form.querySelectorAll('button[type=submit],button:not([type]),input[type=submit]')];
+ adminBusyForms.set(form, buttons.map(button => ({button, disabled:button.disabled, html:button.innerHTML, value:button.value})));
+ form.setAttribute('aria-busy','true');
+ let feedback = form.querySelector('[data-admin-action-status]');
+ if (!feedback) { feedback = document.createElement('p'); feedback.dataset.adminActionStatus = ''; feedback.className = 'admin-action-status'; feedback.setAttribute('role','status'); form.append(feedback); }
+ feedback.textContent = label + ' Esperá la confirmación del servidor.';
+ buttons.forEach(button => { button.disabled = true; if (button.tagName === 'INPUT') button.value = label; else button.textContent = label; });
+};
+const resetAdminForms = () => {
+ adminBusyForms.forEach((buttons, form) => {
+  delete form.dataset.submitted; form.removeAttribute('aria-busy');
+  buttons.forEach(({button,disabled,html,value}) => { button.disabled = disabled; if (button.tagName === 'INPUT') button.value = value; else button.innerHTML = html; });
+  form.querySelector('[data-admin-action-status]')?.remove();
+ });
+ adminBusyForms.clear();
+};
+window.addEventListener('pageshow', resetAdminForms);
 const adminMenu = document.querySelector('.admin-sidebar');
 if (adminMenu) {
  const desktop = window.matchMedia('(min-width: 901px)');
@@ -55,7 +75,7 @@ if (editorMain) {
   const panel = form.closest('[data-editor-panel]');
   if (form !== editorMain && !panel) return;
   // Creation uses the normal redirect to establish the new product URL.
-  if (form === editorMain && !location.pathname.endsWith('/edit')) { if (form.dataset.submitted) { event.preventDefault(); return; } form.dataset.submitted = 'true'; dirty.delete(form); report('Guardando…'); return; }
+  if (form === editorMain && !location.pathname.endsWith('/edit')) { if (form.dataset.submitted) { event.preventDefault(); return; } form.dataset.submitted = 'true'; dirty.delete(form); report('Guardando…'); setTimeout(() => setAdminFormBusy(form, 'Creando producto…'),0); return; }
   event.preventDefault();
   if (form.dataset.busy) return;
   if (panel && [...dirty].some(other => other !== form && panel.contains(other))) { report('Guardá primero los otros cambios pendientes de esta sección.'); return; }
@@ -64,20 +84,23 @@ if (editorMain) {
   if (!feedback) { feedback = document.createElement('p'); feedback.dataset.formFeedback = ''; feedback.setAttribute('role','status'); form.append(feedback); }
   const show = message => { report(message); feedback.textContent = message; };
   const data = new FormData(form);
-  const buttons = [...form.querySelectorAll('button')].map(button => [button, button.disabled]);
-  form.dataset.busy = 'true'; form.setAttribute('aria-busy','true'); buttons.forEach(([button]) => { button.disabled = true; });
+  const buttons = [...form.querySelectorAll('button')].map(button => [button, button.disabled, button.innerHTML]);
+  const actionLabel = form.querySelector('input[value="DELETE"]') ? 'Eliminando…' : form.querySelector('input[type=file]')?.files?.length ? 'Subiendo imagen…' : 'Guardando…';
+  form.dataset.busy = 'true'; form.setAttribute('aria-busy','true'); buttons.forEach(([button]) => { button.disabled = true; if (button.type === 'submit') button.textContent = actionLabel; });
   form.querySelectorAll('[data-inline-error]').forEach(error => error.remove());
   form.querySelectorAll('[aria-invalid]').forEach(input => input.removeAttribute('aria-invalid'));
-  show('Guardando…');
+  show(actionLabel);
   let committed = false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(),30000);
   try {
-   const response = await fetch(form.action, {method:'POST', body:data, headers:{Accept:'application/json'}, credentials:'same-origin'});
+   const response = await fetch(form.action, {method:'POST', body:data, headers:{Accept:'application/json'}, credentials:'same-origin',signal:controller.signal});
    if (response.status === 422) {
     const result = await response.json();
     Object.entries(result.errors || {}).forEach(([key,messages]) => {
      const field = [...form.elements].find(input => input.name === key || input.name === key+'[]');
      const error = document.createElement('p'); error.className = 'field-error'; error.dataset.inlineError = ''; error.textContent = messages.join(' ');
-     if (field) { field.setAttribute('aria-invalid','true'); field.closest('.field')?.append(error) || field.after(error); } else form.prepend(error);
+     if (field) { field.setAttribute('aria-invalid','true'); const wrapper = field.closest('.field'); if (wrapper) wrapper.append(error); else field.after(error); } else form.prepend(error);
     });
     const invalid = form.querySelector('[aria-invalid]');
     let ancestor = invalid?.parentElement; while (ancestor) { if (ancestor.tagName === 'DETAILS') ancestor.open = true; ancestor = ancestor.parentElement; }
@@ -86,7 +109,7 @@ if (editorMain) {
    if (!response.ok || new URL(response.url).pathname === '/login') throw new Error('No se pudo confirmar el guardado. Revisá tu sesión y conexión.');
    committed = true; dirty.delete(form);
    if (panel) {
-    const refresh = await fetch(location.href,{headers:{Accept:'text/html'},credentials:'same-origin'});
+    const refresh = await fetch(location.href,{headers:{Accept:'text/html'},credentials:'same-origin',signal:controller.signal});
     if (!refresh.ok) throw new Error('El cambio se guardó, pero no se pudo actualizar la sección. Recargá cuando hayas guardado los demás cambios.');
     const html = new DOMParser().parseFromString(await refresh.text(),'text/html');
     const updated = [...html.querySelectorAll('[data-editor-panel]')].find(candidate => candidate.dataset.editorPanel === panel.dataset.editorPanel);
@@ -96,11 +119,12 @@ if (editorMain) {
     const position = scrollY;
     const notice = document.createElement('p'); notice.className = 'notice'; notice.setAttribute('role','status'); notice.textContent = 'Sección guardada'; updated.prepend(notice);
     panel.replaceWith(updated);
+    notice.tabIndex = -1; notice.focus({preventScroll:true});
     requestAnimationFrame(() => scrollTo(0,position));
    }
    show(dirty.size ? 'Sección guardada; quedan otros cambios pendientes.' : 'Cambios guardados');
-  } catch (error) { show(error.message || (committed ? 'Cambio guardado; vista pendiente de actualizar.' : 'Error de conexión. Verificá el resultado antes de volver a enviar.')); }
-  finally { delete form.dataset.busy; form.removeAttribute('aria-busy'); buttons.forEach(([button,disabled]) => { button.disabled = disabled; }); }
+  } catch (error) { show(error.name === 'AbortError' ? (committed ? 'El cambio se guardó, pero la vista tardó demasiado. Recargá la sección.' : 'La respuesta tardó demasiado. Verificá si el cambio quedó guardado antes de volver a enviarlo.') : error.message || (committed ? 'Cambio guardado; vista pendiente de actualizar.' : 'Error de conexión. Verificá el resultado antes de volver a enviar.')); }
+  finally { clearTimeout(timeout); delete form.dataset.busy; form.removeAttribute('aria-busy'); buttons.forEach(([button,disabled,html]) => { button.disabled = disabled; button.innerHTML = html; }); }
  });
  document.addEventListener('change', event => {
   if (!event.target.matches('input[type="file"][name="image"]')) return;
@@ -115,12 +139,13 @@ document.addEventListener('submit', event => {
  if (event.defaultPrevented) return;
  if (form.action.endsWith('/quick')) { try { sessionStorage.setItem('ens.product-context',JSON.stringify({url:location.href,scroll:scrollY})); } catch {} }
  if (form.dataset.confirm && !confirm(form.dataset.confirm)) { event.preventDefault(); return; }
- if (!form.closest('.admin-workspace') || form.matches('[data-editor-main]') || form.closest('[data-editor-panel]')) return;
+ if (!form.closest('.admin-workspace') || form.matches('[data-editor-main],[data-cms-editor],[data-settings-form]') || form.closest('[data-editor-panel]')) return;
  if (form.dataset.submitted) { event.preventDefault(); return; }
  form.dataset.submitted = 'true';
- setTimeout(() => { form.querySelectorAll('button[type=submit],button:not([type])').forEach(button => { button.disabled = true; }); },0);
+ const method = form.querySelector('[name="_method"]')?.value || form.method.toUpperCase();
+ const label = new URL(form.action).pathname === '/logout' ? 'Cerrando sesión…' : method === 'GET' ? 'Buscando…' : method === 'DELETE' ? 'Eliminando…' : form.querySelector('input[type=file]')?.files?.length ? 'Subiendo imagen…' : 'Guardando…';
+ setTimeout(() => setAdminFormBusy(form,label),0);
 });
-window.addEventListener('pageshow', event => { if (event.persisted) document.querySelectorAll('form[data-submitted]').forEach(form => { delete form.dataset.submitted; form.querySelectorAll('button').forEach(button => { button.disabled = false; }); }); });
 const ordersContact = document.querySelector('[name="whatsapp_orders_contact"]');
 if (ordersContact) {
  const form = ordersContact.form;
@@ -195,6 +220,7 @@ const cmsEditor = document.querySelector('[data-cms-editor]');
 if (cmsEditor) {
  const panel = document.querySelector('.cms-live-preview');
  const frame = panel.querySelector('[data-cms-frame]');
+ const skeleton = panel.querySelector('[data-cms-skeleton]');
  const status = panel.querySelector('[data-cms-status]');
  const errors = panel.querySelector('[data-cms-preview-errors]');
  const refresh = panel.querySelector('[data-cms-refresh]');
@@ -237,6 +263,7 @@ if (cmsEditor) {
   const sentRevision = revision;
   status.textContent = 'Preparando vista previa sin guardar…';
   frame.setAttribute('aria-busy','true');
+  if (skeleton && !frame.srcdoc) { skeleton.hidden = false; frame.hidden = true; }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(),20000);
   try {
@@ -254,7 +281,7 @@ if (cmsEditor) {
   } catch (error) {
    errors.textContent = error.name === 'AbortError' ? 'La vista previa tardó demasiado. Intentá nuevamente.' : error.message;
    errors.hidden = false; status.textContent = 'No se pudo actualizar la vista previa. Tus cambios siguen en el formulario.';
-  } finally { clearTimeout(timeout); previewing = false; refresh.disabled = false; frame.removeAttribute('aria-busy'); }
+  } finally { clearTimeout(timeout); previewing = false; refresh.disabled = false; frame.removeAttribute('aria-busy'); if (skeleton) skeleton.hidden = true; frame.hidden = false; }
  };
  refresh.addEventListener('click',preview);
  if (document.querySelector('.errors')) { dirty = true; status.textContent = 'No se guardó. Corregí los errores indicados y volvé a intentar.'; }

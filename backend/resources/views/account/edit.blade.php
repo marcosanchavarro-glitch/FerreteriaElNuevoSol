@@ -10,7 +10,7 @@
 <div class="ens-field"><label for="profile_current_password">Contraseña actual, si cambiás el email</label><input id="profile_current_password" name="current_password" type="password" autocomplete="current-password"></div><button class="ens-btn ens-btn-primary" type="submit">Guardar datos</button></form></section>
 <details class="ens-block ens-profile-card ens-password-section" @if($errors->hasAny(['current_password', 'password', 'password_confirmation'])) open @endif><summary>Cambiar contraseña</summary><p>Elegí una contraseña nueva solamente cuando lo necesites.</p><form method="POST" action="{{ route('account.password') }}">@csrf @method('PUT')
 <div class="ens-field"><label for="current_password">Contraseña actual</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password"></div>
-<div class="ens-field"><label for="password">Nueva contraseña</label><input id="password" name="password" type="password" required minlength="12" maxlength="72" autocomplete="new-password"><small class="hint">Al menos 12 caracteres, con letras y números.</small></div>
+<div class="ens-field"><label for="password">Nueva contraseña</label><input id="password" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password"><small class="hint">Al menos 8 caracteres, con letras y números.</small></div>
 <div class="ens-field"><label for="password_confirmation">Repetir nueva contraseña</label><input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password"></div><button class="ens-btn ens-btn-primary" type="submit">Actualizar contraseña</button></form></details></div>@endsection
 
 

@@ -26,7 +26,7 @@ class RegisterRequest extends FormRequest
             'first_name' => ['required', 'string', 'max:100'], 'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:40'],
-            'password' => ['required', 'string', 'max:72', new PasswordInput, 'confirmed', Password::min(12)->letters()->numbers()],
+            'password' => ['required', 'string', 'max:72', new PasswordInput, 'confirmed', Password::min(8)->letters()->numbers()],
         ];
     }
 }

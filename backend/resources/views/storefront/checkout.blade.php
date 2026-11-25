@@ -2,7 +2,7 @@
 @php($pageTitle='Revisá tu pedido · El Nuevo Sol')
 @php($noindex=true)
 @section('content')
-<div class="ens-page-head"><div><span class="ens-kicker">Un paso más</span><h1>Revisá tu pedido</h1></div><a href="{{ route('cart.index') }}">← Volver al carrito</a></div>
+<div class="ens-page-head"><div><span class="ens-kicker">Un paso más</span><h1>Revisá tu pedido</h1></div><a data-cart-open href="{{ route('cart.index') }}">← Volver al carrito</a></div>
 <div class="ens-checkout-grid"><section class="ens-checkout-contact ens-block"><h2>Tus datos para este pedido</h2><p>No necesitás una cuenta. Si ya ingresaste, podés corregir estos datos sin modificar tu perfil.</p>
 <form method="POST" action="{{ route('checkout.store') }}" data-checkout-form>@csrf<input type="hidden" name="token" value="{{ $token }}">
 <div class="ens-contact-fields">

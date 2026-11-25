@@ -9,6 +9,9 @@
  let cartBusy = false;
  let authBusy = false;
  let authLoad;
+ let cartTimer;
+ const pendingCartUpdates = new Map();
+ let continueAfterCart;
  const status = (dialog, message = '', error = false) => {
   const node = dialog.querySelector('[data-overlay-status]');
   node.textContent = message;
@@ -39,12 +42,36 @@
  };
  const renderCart = data => {
   cart.querySelector('[data-cart-content]').innerHTML = data.html;
+  cart.querySelectorAll('.ens-cart-update').forEach(form => { form.dataset.autoUpdate = ''; });
+  cart.querySelectorAll('.ens-cart-update').forEach(form => {
+   if (pendingCartUpdates.has(form.action)) form.querySelector('[name="quantity"]').value = pendingCartUpdates.get(form.action);
+  });
   document.querySelectorAll('[data-cart-open]').forEach(link => {
    const count = link.querySelector('[data-cart-count]');
    if (count) { count.textContent = data.count; count.hidden = data.count === 0; }
    link.setAttribute('aria-label', `Carrito: ${data.count} productos distintos`);
   });
   status(cart, data.message);
+ };
+ const flushCartUpdate = () => {
+  if (cartBusy) { cartTimer = setTimeout(flushCartUpdate, 100); return; }
+  const next = pendingCartUpdates.entries().next().value;
+  if (!next) return;
+  const [action, quantity] = next;
+  pendingCartUpdates.delete(action);
+  const form = [...cart.querySelectorAll('.ens-cart-update')].find(form => form.action === action);
+  if (form) {
+   form.querySelector('[name="quantity"]').value = quantity;
+   if (!form.checkValidity()) { continueAfterCart = null; status(cart, 'Ingresá una cantidad para continuar.', true); return; }
+   form.requestSubmit();
+  }
+  else if (pendingCartUpdates.size) flushCartUpdate();
+ };
+ const queueCartUpdate = form => {
+  pendingCartUpdates.set(form.action, form.querySelector('[name="quantity"]').value);
+  clearTimeout(cartTimer);
+  status(cart, 'Actualizando cantidad…');
+  cartTimer = setTimeout(flushCartUpdate, 350);
  };
  const loadCart = async () => {
   if (cartBusy) return;
@@ -63,6 +90,9 @@
   authLoad = controller;
   const timeout = setTimeout(() => controller.abort(), 20000);
   open(auth);
+  auth.dataset.mode = mode;
+  auth.querySelector('#ens-auth-title').textContent = mode === 'register' ? 'Creá tu cuenta' : 'Ingresá a tu cuenta';
+  auth.querySelector('.ens-auth-intro').textContent = mode === 'register' ? 'Tus datos y tus pedidos, en un solo lugar.' : 'Consultá tus pedidos y tené tus datos a mano.';
   auth.querySelector('[data-auth-content]').replaceChildren();
   auth.querySelectorAll('[data-auth-mode]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.authMode === mode)));
   auth.setAttribute('aria-busy', 'true');
@@ -76,6 +106,7 @@
    section.querySelectorAll('[autofocus]').forEach(input => input.removeAttribute('autofocus'));
    section.className = 'ens-auth-fields';
    section.querySelector('h1')?.remove();
+   section.querySelector('.subtitle')?.remove();
    const form = section.querySelector('form');
    form.dataset.overlayAuthForm = '';
    auth.querySelector('[data-auth-content]').append(section);
@@ -115,7 +146,7 @@
     });
    });
    content.querySelectorAll('form').forEach(form => {
-    if (form.querySelector('[name="_method"]') && !form.action.includes('/notificaciones/')) form.dataset.accountForm = '';
+    if (form.querySelector('[name="_method"]') || form.action.includes('/mi-cuenta/notificaciones/')) form.dataset.accountForm = '';
    });
    account.querySelector('[data-account-content]').replaceChildren(...content.childNodes);
    account.scrollTop = 0;
@@ -144,7 +175,11 @@
   const link = event.target.closest('a');
   if (link && ordinaryClick(event)) {
    const url = new URL(link.href, location.href);
-   if (account && (link.hasAttribute('data-account-open') || (link.closest('[data-account-content]') && url.origin === location.origin && (url.pathname === '/mi-cuenta' || url.pathname.startsWith('/mi-cuenta/'))))) {
+   if (cart && link.closest('[data-cart-content]') && url.pathname === '/checkout' && (pendingCartUpdates.size || cartBusy)) {
+    event.preventDefault();
+    continueAfterCart = url.href;
+    if (pendingCartUpdates.size) { clearTimeout(cartTimer); flushCartUpdate(); }
+   } else if (account && (link.hasAttribute('data-account-open') || link.hasAttribute('data-account-section') || (link.closest('[data-account-content]') && url.origin === location.origin && (url.pathname === '/mi-cuenta' || url.pathname.startsWith('/mi-cuenta/'))))) {
     event.preventDefault();
     loadAccount(link.hasAttribute('data-account-open') ? account.dataset.accountUrl : url.href);
    } else if (auth && (link.hasAttribute('data-auth-open') || url.href === auth.dataset.loginUrl || url.href === auth.dataset.registerUrl)) {
@@ -162,9 +197,13 @@
    const input = delta.closest('[data-quantity]').querySelector('input');
    if (!/^\d{1,4}(\.\d{1,3})?$/.test(input.value.trim())) return;
    const step = Number(input.dataset.step || 1000);
-   const value = Math.max(step, Math.min(9999999, Math.round(Number(input.value) * 1000) + Number(delta.dataset.delta) * step));
+   const value = Math.max(step, Math.min(step === 1000 ? 9999000 : 9999999, Math.round(Number(input.value) * 1000) + Number(delta.dataset.delta) * step));
    input.value = (value / 1000).toFixed(3).replace(/\.?0+$/, '');
+   queueCartUpdate(input.form);
   }
+ });
+ document.addEventListener('input', event => {
+  if (event.target.matches('#ens-cart-drawer .ens-cart-update input[name="quantity"]')) queueCartUpdate(event.target.form);
  });
  document.addEventListener('submit', async event => {
   const form = event.target;
@@ -175,9 +214,13 @@
   event.preventDefault();
   if ((isAuth && authBusy) || (isCart && cartBusy) || (isAccount && accountBusy)) return;
   const body = new FormData(form);
+  const quantityInput = isCart && form.matches('.ens-cart-update') ? form.querySelector('input[name="quantity"]') : null;
+  const quantityFocus = quantityInput ? {id:quantityInput.id, start:quantityInput.selectionStart, end:quantityInput.selectionEnd} : null;
   const buttons = [...form.querySelectorAll('button')];
+  const inputs = [...form.querySelectorAll('input:not([type=hidden])')];
   const disabled = buttons.map(button => button.disabled);
   buttons.forEach(button => { button.disabled = true; });
+  if (isCart) inputs.forEach(input => { input.disabled = true; });
   form.setAttribute('aria-busy', 'true');
   const dialog = isAuth ? auth : isAccount ? account : cart;
   if (isAuth) authBusy = true;
@@ -191,20 +234,41 @@
     document.querySelectorAll('input[name="_token"]').forEach(input => { input.value = data.csrf_token; });
     document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', data.csrf_token);
     form.querySelectorAll('input[type="password"]').forEach(input => { input.value = ''; });
+    if (typeof data.unread === 'number') {
+     document.querySelectorAll('.ens-bell').forEach(link => {
+      link.setAttribute('aria-label', `Notificaciones: ${data.unread} sin leer`);
+      const badge = link.querySelector('.ens-icon-badge');
+      if (badge) { badge.textContent = data.unread; badge.hidden = data.unread === 0; }
+     });
+     const articles = form.closest('article') ? [form.closest('article')] : [...account.querySelectorAll('.ens-notification')];
+     articles.forEach(article => {
+      article.classList.remove('ens-unread');
+      const badge = article.querySelector('.order-badge');
+      if (badge) badge.textContent = 'Leída';
+      article.querySelector('form')?.remove();
+     });
+    }
     if (form.closest('.ens-password-section')) form.closest('details').open = false;
     status(account, data.message);
     account.querySelector('[data-overlay-status]').scrollIntoView({block:'nearest'});
     return;
    }
    renderCart(data);
-   cart.querySelector('[data-overlay-close]')?.focus();
-  } catch (error) { status(dialog, error.message, true); }
+   if (continueAfterCart && !pendingCartUpdates.size) { const target = continueAfterCart; continueAfterCart = null; location.assign(target); return; }
+   const restored = quantityFocus ? document.getElementById(quantityFocus.id) : null;
+   if (restored) {
+    restored.focus({preventScroll:true});
+    if (quantityFocus.start !== null) restored.setSelectionRange(quantityFocus.start, quantityFocus.end);
+   } else if (cart.open) cart.querySelector('[data-overlay-close]')?.focus();
+  } catch (error) { continueAfterCart = null; if (isCart) pendingCartUpdates.clear(); status(dialog, error.message, true); }
   finally {
    if (isAuth) authBusy = false;
    else if (isAccount) accountBusy = false;
    else cartBusy = false;
    buttons.forEach((button, index) => { button.disabled = disabled[index]; });
+   if (isCart) inputs.forEach(input => { input.disabled = false; });
    form.removeAttribute('aria-busy');
+   if (isCart && pendingCartUpdates.size) { clearTimeout(cartTimer); cartTimer = setTimeout(flushCartUpdate, 0); }
   }
  });
 })();
