@@ -17,6 +17,29 @@ class CartCheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_quote_message_omits_unknown_units_zero_total_and_pending_workflow(): void
+    {
+        $order = Order::factory()->create(['confirmed_total' => 0]);
+        OrderItem::factory()->create(['order_id' => $order->id, 'sale_unit' => 'other', 'quantity' => '1.000', 'unit_price' => null, 'subtotal' => null, 'requires_confirmation' => true]);
+        $message = app(WhatsAppOrder::class)->message($order->load('items'));
+        $this->assertStringContainsString('Hola, quisiera cotizar', $message);
+        $this->assertStringContainsString('• 1 × Producto histórico de prueba', $message);
+        $this->assertStringContainsString('Importe total: a cotizar por la ferretería.', $message);
+        foreach (['Otra', '$ 0,00', 'Productos a confirmar', '\\n', '\\'] as $unexpected) {
+            $this->assertStringNotContainsString($unexpected, $message);
+        }
+        $this->assertStringContainsString("\n\nProductos:\n", $message);
+    }
+
+    public function test_priced_message_keeps_the_real_total(): void
+    {
+        $order = Order::factory()->create(['confirmed_total' => 250100]);
+        OrderItem::factory()->create(['order_id' => $order->id]);
+        $message = app(WhatsAppOrder::class)->message($order->load('items'));
+        $this->assertStringContainsString('Total del pedido: $ 2.501,00', $message);
+        $this->assertStringNotContainsString('a cotizar', $message);
+    }
+
     public function test_drawer_uses_existing_cart_rules_for_add_update_and_remove(): void
     {
         $product = $this->product();
@@ -353,15 +376,14 @@ class CartCheckoutTest extends TestCase
         $message = $wa->message($order);
         $url = $wa->url($order);
         $this->assertSame('https://wa.me/5491155551234?text='.rawurlencode($message), $url);
-        $this->assertStringContainsString('5.5 Metro x Cable & cobre', $message);
-        $this->assertStringContainsString('A confirmar', $message);
-        $this->assertStringContainsString('Productos a confirmar: 1', $message);
+        $this->assertStringContainsString('5,5 Metro × Cable & cobre', $message);
+        $this->assertStringContainsString('Precio a cotizar', $message);
+        $this->assertStringContainsString('Subtotal de artículos con precio:', $message);
         $this->assertStringContainsString('Retiro en local.', $message);
         $this->assertStringContainsString('Cliente: '.$order->customer_first_name.' '.$order->customer_last_name, $message);
         $this->assertStringContainsString('Teléfono: '.$order->customer_phone, $message);
-        $this->assertStringContainsString('sujeto a consulta', $message);
         $this->assertStringContainsString('precio unitario:', $message);
-        $this->assertStringContainsString('pendiente de atención y confirmación', $message);
+        $this->assertStringContainsString('La ferretería debe confirmar precio y disponibilidad.', $message);
         $this->assertStringContainsString($order->order_number, $message);
         config(['shop.whatsapp_number' => 'https://evil.test']);
         $this->assertNull($wa->url($order));
