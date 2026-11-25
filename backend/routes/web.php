@@ -28,6 +28,7 @@ Route::get('/acceso-demo', [DemoAccessController::class, 'create'])->name('demo.
 Route::post('/acceso-demo', [DemoAccessController::class, 'store'])->middleware('throttle:demo-access')->name('demo.enter');
 
 Route::get('/', [CatalogController::class, 'home'])->name('home');
+Route::view('/contacto', 'storefront.contact')->name('store.contact');
 Route::get('/productos', [CatalogController::class, 'index'])->name('store.products');
 Route::get('/productos/{slug}', [CatalogController::class, 'show'])->name('store.product');
 Route::get('/categorias/{slug}', [CatalogController::class, 'index'])->name('store.category');
@@ -72,6 +73,8 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
                 Route::get('/', [$controller, 'index'])->defaults('kind', $kind)->name('index');
                 Route::get('/create', [$controller, 'edit'])->defaults('kind', $kind)->name('create');
                 Route::post('/', [$controller, 'save'])->defaults('kind', $kind)->name('store');
+                Route::post('/preview', [$controller, 'preview'])->defaults('kind', $kind)->name('preview-create');
+                Route::post('/{id}/preview', [$controller, 'preview'])->whereNumber('id')->defaults('kind', $kind)->name('preview');
                 Route::get('/{id}/edit', [$controller, 'edit'])->whereNumber('id')->defaults('kind', $kind)->name('edit');
                 Route::put('/{id}', [$controller, 'save'])->whereNumber('id')->defaults('kind', $kind)->name('update');
                 Route::post('/{id}/move', [$controller, 'move'])->whereNumber('id')->defaults('kind', $kind)->name('move');

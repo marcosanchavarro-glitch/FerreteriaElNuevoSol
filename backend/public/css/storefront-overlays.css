@@ -1,0 +1,83 @@
+.ens-overlay{box-sizing:border-box;border:0;border-radius:20px;padding:24px;color:#263372;background:#fff;box-shadow:0 24px 80px #101a4660;max-height:calc(100dvh - 32px);width:min(520px,calc(100% - 24px));overflow:auto;overscroll-behavior:contain}
+.ens-overlay::backdrop{background:#121936a6;backdrop-filter:blur(3px)}
+html:has(.ens-overlay[open]){overflow:hidden}
+.ens-overlay-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
+.ens-overlay-head h2{font-size:1.5rem;margin:0}
+.ens-overlay-close{border:0;background:#f0f2f7;border-radius:50%;width:44px;height:44px;font-size:28px;color:#263372;cursor:pointer;flex-shrink:0}
+.ens-auth-switch{display:flex;gap:8px;background:#f0f2f7;padding:6px;border-radius:12px}
+.ens-auth-switch button{flex:1;border:0;border-radius:9px;padding:12px;font:inherit;cursor:pointer;color:#263372}
+.ens-auth-switch [aria-pressed=true]{background:#263372;color:white}
+.ens-overlay label{display:block;margin-top:12px;font-weight:600}
+.ens-overlay input:not([type=checkbox]){box-sizing:border-box;display:block;width:100%;padding:12px;border:1px solid #b8bfd2;border-radius:8px;font:inherit;color:#182348;background:white}
+.ens-overlay input[type=checkbox]{width:20px;height:20px;vertical-align:middle}
+.ens-overlay form>button[type=submit]{margin-top:18px;width:100%;border:0;border-radius:10px;background:#263372;color:white;padding:13px;font:inherit;font-weight:700;cursor:pointer}
+.ens-overlay :focus-visible{outline:3px solid #f47b42;outline-offset:3px}
+.ens-overlay button:disabled{opacity:.6;cursor:wait}
+.ens-overlay-status{margin:12px 0;line-height:1.5}
+.ens-overlay-status:empty{display:none}
+.ens-overlay-status[data-error]{background:#fff0eb;border-left:3px solid #b03613;padding:12px;color:#8b2910}
+.ens-cart-drawer{margin:0 0 0 auto;border-radius:20px 0 0 20px;width:min(640px,100%);max-width:100%;height:100dvh;max-height:100dvh;padding:24px}
+.ens-cart-drawer .ens-checkout-grid{display:block}
+.ens-cart-drawer .ens-cart-line{display:flex;flex-wrap:wrap;gap:14px;padding:18px 0;border-bottom:1px solid #e1e5ee}
+.ens-cart-drawer .ens-cart-description{flex:1;min-width:150px}
+.ens-cart-drawer .ens-cart-description h2{font-size:1.05rem}
+.ens-cart-drawer .ens-cart-image{width:80px;height:80px;object-fit:contain}
+.ens-cart-drawer .ens-cart-update{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 12px}
+.ens-cart-drawer .ens-cart-update label,.ens-cart-drawer .ens-cart-update small{grid-column:1/-1;margin:0}
+.ens-cart-drawer .ens-cart-update .ens-quantity{grid-column:1;grid-row:2}
+.ens-cart-drawer .ens-cart-update button[type=submit]{grid-column:2;grid-row:2;width:auto;margin:0;padding:12px}
+.ens-cart-drawer .ens-remove{background:transparent;color:#943f2d;width:auto;margin:0;padding:8px}
+.ens-cart-drawer .ens-order-summary{position:static;margin:20px 0}
+.ens-cart-drawer>.ens-btn{margin-top:16px}
+.ens-quick-card:has(.ens-category-thumbnail){padding:0 0 20px;overflow:hidden}
+.ens-quick-card .ens-category-thumbnail{display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:contain;box-sizing:border-box;padding:16px;background:white;border-radius:0;margin:0 0 16px}
+.ens-quick-card:has(.ens-category-thumbnail)>strong,.ens-quick-card:has(.ens-category-thumbnail)>span{margin-inline:18px}
+@media(max-width:480px){.ens-overlay{padding:18px}.ens-cart-drawer{border-radius:0}.ens-overlay-head h2{font-size:1.3rem}}
+.ens-icon{display:inline-block;vertical-align:middle;flex-shrink:0;width:24px;height:24px}
+.ens-actions .ens-account,.ens-actions .ens-bell,.ens-actions .ens-cart-link{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;text-decoration:none;border-radius:10px;padding:6px 10px}
+.ens-actions .ens-account:hover,.ens-actions .ens-bell:hover,.ens-actions .ens-cart-link:hover{background:#edf0fa;color:#263372}
+.ens-actions .ens-account:focus-visible,.ens-actions .ens-bell:focus-visible,.ens-actions .ens-cart-link:focus-visible{outline:3px solid #f47b42;outline-offset:3px}
+.ens-overlay-close{display:inline-flex;align-items:center;justify-content:center}
+.ens-account-dialog{width:min(760px,calc(100% - 24px));padding:28px}
+.ens-account-dialog .ens-overlay-head{position:sticky;top:-28px;z-index:2;background:white;padding:12px 0;border-bottom:1px solid #e5e8f1}
+.ens-account-dialog .ens-profile-grid{display:block}
+.ens-account-dialog .ens-account-welcome{margin:20px 0;padding:20px;border-radius:14px;background:#f3f5fc}
+.ens-account-dialog .ens-account-welcome h2{font-size:1.15rem}
+.ens-account-dialog .ens-profile-card{padding:20px;margin:16px 0;box-shadow:none;border:1px solid #dce1ef;border-radius:14px}
+.ens-account-dialog .ens-account-nav{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 20px}
+.ens-account-dialog .ens-account-nav a,.ens-account-dialog .ens-account-nav button{padding:10px 12px;min-height:44px;border-radius:8px;font:inherit}
+.ens-account-dialog .ens-account-nav form{margin-left:auto}
+.ens-account-dialog .ens-account-nav form>button{background:transparent;color:#263372;margin:0;width:auto;border:1px solid #dce1ef}
+.ens-password-section summary{cursor:pointer;font-size:1.1rem;font-weight:700;min-height:44px;align-content:center}
+.ens-password-section summary:focus-visible{outline:3px solid #f47b42;outline-offset:4px}
+.ens-password-section[open] summary{margin-bottom:16px}
+@media(max-width:480px){.ens-actions{gap:4px}.ens-actions .ens-account,.ens-actions .ens-bell,.ens-actions .ens-cart-link{padding:6px;gap:5px}.ens-account-dialog{padding:18px}.ens-account-dialog .ens-overlay-head{top:-18px}.ens-account-dialog .ens-profile-card{padding:14px}.ens-account-dialog .ens-account-nav form{margin-left:0}}
+.ens-mobile-symbol,.ens-search-toggle{display:none}
+.ens-actions .ens-account,.ens-actions .ens-bell,.ens-actions .ens-cart-link{position:relative;width:44px;height:44px;padding:10px;flex-shrink:0}
+.ens-icon-badge{position:absolute;right:0;top:0;min-width:18px;height:18px;padding:0 4px;border:2px solid white;border-radius:20px;background:#263372;color:white;font-size:10px;font-weight:700;line-height:14px;text-align:center;pointer-events:none}
+.ens-icon-badge[hidden]{display:none}
+.ens-navigation>summary>.ens-icon{display:none}
+@media(max-width:767px){
+ .ens-header{position:relative;z-index:20}
+ .ens-header .ens-header-inner{display:flex;flex-wrap:wrap;align-items:center;gap:8px;min-height:72px;width:calc(100% - 24px);padding:8px 0 8px 44px}
+ .ens-header .ens-brand{min-width:0;flex:0 0 58px;margin:0;padding:0}
+ .ens-header .ens-logo{display:none}
+ .ens-header .ens-mobile-symbol{display:block;width:58px;height:48px;object-fit:contain}
+ .ens-header .ens-actions{margin-left:auto;gap:2px;align-items:center;flex-wrap:nowrap}
+ .ens-header .ens-search-toggle{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;background:transparent;border:0;border-radius:10px;color:#263372;cursor:pointer}
+ .ens-header .ens-search{display:none;order:3;flex:1 0 100%;max-width:none;margin:0;height:46px;border:1px solid #c9d0e3}
+ .ens-header.ens-search-open .ens-search{display:flex}
+ .ens-header .ens-search select{display:none}
+ .ens-header .ens-search input{min-width:0;width:100%}
+ .ens-header .ens-nav{position:static;min-height:0;padding:0;border:0;background:transparent}
+ .ens-header .ens-nav>.ens-container{width:auto;margin:0}
+ .ens-header .ens-navigation>summary{position:absolute;left:8px;top:14px;display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:10px;border:0;border-radius:10px;color:#263372;background:transparent;list-style:none}
+ .ens-header .ens-navigation>summary::before,.ens-header .ens-navigation>summary::after{display:none;content:none}
+ .ens-header .ens-navigation>summary>span{display:none}
+ .ens-header .ens-navigation>summary>.ens-icon{display:block}
+ .ens-header .ens-navigation>summary::-webkit-details-marker{display:none}
+ .ens-header .ens-navigation .ens-nav-inner{position:absolute;top:100%;left:0;right:0;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:10px 16px;background:#263372;box-shadow:0 12px 20px #16234825;border-radius:0 0 16px 16px;max-height:70dvh;overflow:auto}
+ .ens-header .ens-navigation:not([open]) .ens-nav-inner{display:none}
+ .ens-header .ens-nav a{min-height:44px;padding:10px 12px;color:white}
+ .ens-header button:focus-visible,.ens-header summary:focus-visible{outline:3px solid #f47b42;outline-offset:2px}
+}

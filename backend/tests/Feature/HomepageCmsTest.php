@@ -2,21 +2,135 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\Banner;
 use App\Models\Category;
 use App\Models\HomepageSection;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\User;
 use Database\Seeders\HomepageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class HomepageCmsTest extends TestCase
 {
+    public function test_category_uses_a_published_product_photo_unless_an_editorial_image_is_assigned(): void
+    {
+        Storage::fake('catalog');
+        $category = Category::factory()->create(['featured' => true]);
+        $private = Product::factory()->create(['status' => 'private']);
+        $public = Product::factory()->create(['status' => 'published']);
+        $category->products()->attach([$private->id, $public->id]);
+        $hiddenImage = ProductImage::factory()->create(['product_id' => $private->id, 'path' => 'products/'.$private->id.'/hidden.webp']);
+        $image = ProductImage::factory()->create(['product_id' => $public->id, 'path' => 'products/'.$public->id.'/11111111-1111-4111-8111-111111111111.webp']);
+        Storage::disk('catalog')->put($image->path, 'fixture');
+        $this->get('/')->assertOk()->assertSee(route('store.images.product', $image))->assertDontSee(route('store.images.product', $hiddenImage));
+    }
+
+    public function test_category_keeps_its_editorial_photo(): void
+    {
+        $category = Category::factory()->create(['featured' => true]);
+        $category->update(['image_path' => 'categories/'.$category->id.'/22222222-2222-4222-8222-222222222222.webp']);
+        Storage::disk('catalog')->put($category->image_path, 'fixture');
+        $this->get('/')->assertOk()->assertSee(route('store.images.category', $category->slug));
+    }
+
+    public function test_preview_uses_real_homepage_without_changing_any_content_or_audit(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->post('/admin/content/sections', $this->data(['title' => 'Original']))->assertSessionHasNoErrors();
+        $record = HomepageSection::firstOrFail();
+        $other = HomepageSection::create(Arr::except($this->data(['title' => 'Otra sección', 'sort_order' => 5]), ['max_items']));
+        $before = $record->getRawOriginal();
+        $otherBefore = $other->fresh()->getRawOriginal();
+        $logs = ActivityLog::count();
+        $response = $this->post('/admin/content/sections/'.$record->id.'/preview', $this->data(['title' => 'Borrador sin guardar', 'sort_order' => 9, 'image' => UploadedFile::fake()->image('draft.png', 100, 100)]));
+        $response->assertOk()->assertSee('ens-home-hero')->assertSee('css/content.css')->assertSee('Borrador sin guardar')->assertSee('data:image/png;base64,', false)->assertSeeInOrder(['Otra sección', 'Borrador sin guardar']);
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+        $this->assertSame($before, $record->fresh()->getRawOriginal());
+        $this->assertSame($otherBefore, $other->fresh()->getRawOriginal());
+        $this->assertSame($logs, ActivityLog::count());
+        $this->get('/')->assertSee('Original')->assertDontSee('Borrador sin guardar');
+        $this->assertCount(0, Storage::disk('catalog')->allFiles('sections/'.$record->id));
+    }
+
+    public function test_preview_validates_drafts_and_requires_staff_without_saving(): void
+    {
+        $this->post('/admin/content/sections/preview', $this->data())->assertRedirect('/login');
+        $this->actingAs(User::factory()->create())->post('/admin/content/sections/preview', $this->data())->assertForbidden();
+        $this->app['session']->flush();
+        $this->actingAs(User::factory()->admin()->create())->postJson('/admin/content/sections/preview', $this->data(['button_url' => 'javascript:alert(1)']))->assertUnprocessable()->assertJsonValidationErrors('button_url');
+        $this->post('/admin/content/sections/preview', $this->data(['title' => '<script>unsafe</script>']))->assertOk()->assertSee('&lt;script&gt;unsafe&lt;/script&gt;', false)->assertDontSee('<script>unsafe</script>', false);
+        $this->assertDatabaseCount('homepage_sections', 0);
+    }
+
+    public function test_banner_preview_uses_uploaded_image_without_persisting_banner(): void
+    {
+        $this->actingAs(User::factory()->seller()->create());
+        HomepageSection::create(['type' => 'banner', 'title' => 'Grupo real', 'active' => true, 'sort_order' => 0]);
+        $this->post('/admin/content/banners/preview', [
+            'title' => 'Banner sin guardar', 'active' => 1, 'sort_order' => 0,
+            'image' => UploadedFile::fake()->image('banner.webp', 300, 100),
+        ])->assertOk()->assertSee('Grupo real')->assertSee('Banner sin guardar')->assertSee('data:image/webp;base64,', false);
+        $this->assertDatabaseCount('banners', 0);
+        $this->assertCount(0, Storage::disk('catalog')->allFiles());
+    }
+
+    public function test_hidden_draft_is_omitted_and_saved_section_matches_preview_without_changing_other_sections(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->post('/admin/content/sections', $this->data())->assertSessionHasNoErrors();
+        $record = HomepageSection::firstOrFail();
+        $this->post('/admin/content/sections/'.$record->id.'/preview', $this->data(['active' => 0]))->assertOk()->assertDontSee('Mi portada');
+        $draft = $this->data(['title' => 'Cambio comprobado', 'button_text' => 'Consultar catálogo']);
+        $this->app['session']->forget('status');
+        $preview = $this->post('/admin/content/sections/'.$record->id.'/preview', $draft)->assertOk();
+        $this->put('/admin/content/sections/'.$record->id, $draft)->assertSessionHasNoErrors();
+        $this->app['session']->forget('status');
+        $public = $this->get('/')->assertOk();
+        preg_match('/<main.*?<\/main>/s', $preview->getContent(), $previewMain);
+        preg_match('/<main.*?<\/main>/s', $public->getContent(), $publicMain);
+        $this->assertSame($previewMain[0], $publicMain[0]);
+    }
+
     use RefreshDatabase;
+
+    public function test_official_brand_assets_and_favicon_are_shared_by_storefront_and_admin(): void
+    {
+        foreach (['logo-primary.webp', 'logo-secondary.webp', 'favicon.png', 'social-logo.png'] as $asset) {
+            $this->assertFileExists(public_path('images/branding/'.$asset));
+        }
+        $this->get('/')->assertOk()->assertSee('images/branding/logo-primary.webp')->assertSee('images/branding/favicon.png')
+            ->assertSee('images/branding/logo-secondary.webp')->assertSee('css/design-tokens.css')
+            ->assertSee('images/branding/social-logo.png')->assertSee('name="theme-color" content="#263372"', false);
+        $this->actingAs(User::factory()->admin()->create())->get('/admin/settings')->assertOk()
+            ->assertSee('images/branding/logo-secondary.webp')->assertSee('images/branding/favicon.png')
+            ->assertSee('css/design-tokens.css');
+    }
+
+    public function test_editable_heroes_keep_one_main_heading_and_prioritize_only_first_visible_image(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $this->post('/admin/content/sections', $this->data(['title' => 'Portada editable', 'image' => UploadedFile::fake()->image('hero.png', 1200, 600)]))->assertSessionHasNoErrors();
+        $first = HomepageSection::firstOrFail();
+        $this->post('/admin/content/sections', $this->data(['title' => 'Segunda portada', 'sort_order' => 1, 'image' => UploadedFile::fake()->image('second.png', 600, 400)]))->assertSessionHasNoErrors();
+        $response = $this->get('/')->assertOk()->assertSee('Portada editable')->assertSee('Segunda portada');
+        $html = $response->getContent();
+        $this->assertSame(1, substr_count($html, '<h1 '));
+        $this->assertSame(1, substr_count($html, 'fetchpriority="high"'));
+        $response->assertSee('loading="lazy" fetchpriority="auto"', false)->assertSee('hero-title-0')->assertSee('hero-title-1');
+        $imagePath = $first->image_path;
+        $this->put('/admin/content/sections/'.$first->id, $this->data(['title' => 'Título cambiado desde el CMS', 'button_text' => 'Explorar ahora']))->assertSessionHasNoErrors();
+        $this->get('/')->assertSee('Título cambiado desde el CMS')->assertSee('Explorar ahora');
+        $this->assertSame($imagePath, $first->fresh()->image_path);
+        $this->patch('/admin/content/sections/'.$first->id.'/visibility', ['active' => 0, 'confirm' => 1])->assertSessionHasNoErrors();
+        $this->get('/')->assertDontSee('Título cambiado desde el CMS')->assertSee('Segunda portada');
+    }
 
     protected function setUp(): void
     {

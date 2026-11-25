@@ -20,7 +20,7 @@ class ContentRequest extends FormRequest
     {
         $banner = $this->route('kind') === 'banners';
         $model = $banner ? Banner::class : HomepageSection::class;
-        $needsConfirmation = $this->route('id') && ! $this->boolean('active')
+        $needsConfirmation = ! $this->routeIs('admin.*.preview*') && $this->route('id') && ! $this->boolean('active')
             && $model::whereKey($this->route('id'))->where('active', true)->exists();
 
         return [

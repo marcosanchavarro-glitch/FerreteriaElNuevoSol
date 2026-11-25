@@ -53,16 +53,30 @@ class CustomerOrdersTest extends TestCase
         $this->actingAs($order->user)->get(route('account.orders.show', $order))->assertOk()->assertSee('Este pedido fue cancelado.')->assertDontSee('Progreso del pedido');
     }
 
-    public function test_account_is_customer_only_but_staff_keep_own_profile(): void
+    public function test_staff_can_access_personal_account_without_listing_other_customers_orders(): void
     {
         $this->get(route('account.orders.index'))->assertRedirect(route('login'));
         $staff = User::factory()->seller()->create();
-        $this->actingAs($staff)->get(route('account.edit'))->assertForbidden();
-        $this->get(route('account.orders.index'))->assertForbidden();
-        $this->get(route('account.notifications.index'))->assertForbidden();
+        $own = Order::factory()->create(['user_id' => $staff->id, 'order_number' => 'PEDIDO-PERSONAL']);
+        $other = Order::factory()->create(['order_number' => 'PEDIDO-AJENO']);
+        $this->actingAs($staff)->get(route('account.edit'))->assertOk()->assertViewIs('account.edit')->assertSee('PEDIDO-PERSONAL')->assertDontSee('PEDIDO-AJENO');
+        $this->get(route('account.orders.index'))->assertOk()->assertSee('PEDIDO-PERSONAL')->assertDontSee('PEDIDO-AJENO');
+        $this->get(route('account.orders.show', $own))->assertOk();
+        $this->get(route('account.orders.show', $other))->assertNotFound();
+        $this->get(route('account.notifications.index'))->assertOk();
         $this->get(route('admin.profile.edit'))->assertOk()->assertSee($staff->email);
         $this->patch(route('admin.profile.update'), ['first_name' => 'Vendedor', 'last_name' => $staff->last_name, 'email' => $staff->email, 'phone' => $staff->phone])->assertSessionHasNoErrors();
         $this->assertSame('Vendedor', $staff->fresh()->first_name);
+    }
+
+    public function test_admin_my_account_links_to_personal_profile_and_keeps_admin_panel_separate(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $other = Order::factory()->create(['order_number' => 'PEDIDO-AJENO']);
+        $this->actingAs($admin)->get(route('home'))->assertOk()->assertSee('data-account-open', false)->assertSee('href="'.route('account.edit').'"', false);
+        $this->get(route('account.edit'))->assertOk()->assertViewIs('account.edit')->assertSee('Mis pedidos')->assertDontSee('PEDIDO-AJENO');
+        $this->get(route('account.orders.show', $other))->assertNotFound();
+        $this->get(route('admin.home'))->assertOk();
     }
 
     public function test_profile_changes_do_not_rewrite_historical_contact(): void

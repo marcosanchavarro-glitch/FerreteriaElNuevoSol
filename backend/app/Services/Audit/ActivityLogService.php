@@ -30,7 +30,7 @@ class ActivityLogService
         'orders' => ['status'],
         'sections' => ['type', 'title', 'subtitle', 'content', 'image_path', 'button_text', 'button_url', 'max_items', 'active', 'sort_order', 'order'],
         'banners' => ['title', 'subtitle', 'image_path', 'button_text', 'button_url', 'active', 'sort_order', 'order'],
-        'settings' => ['business_name', 'phone', 'whatsapp_number', 'pickup_address', 'pickup_hours'],
+        'settings' => ['business_name', 'phone', 'contact_primary_number', 'contact_secondary_number', 'contact_tertiary_number', 'whatsapp_orders_contact', 'whatsapp_inquiries_contact', 'whatsapp_number', 'whatsapp_number_kind', 'whatsapp_inquiries_number', 'whatsapp_inquiries_kind', 'pickup_address', 'locality', 'province', 'postal_code', 'maps_url', 'maps_embed_url', 'pickup_hours'],
     ];
 
     public function module(Model $subject): string

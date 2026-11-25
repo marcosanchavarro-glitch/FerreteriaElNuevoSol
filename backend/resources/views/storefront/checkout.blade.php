@@ -7,7 +7,7 @@
 <form method="POST" action="{{ route('checkout.store') }}" data-checkout-form>@csrf<input type="hidden" name="token" value="{{ $token }}">
 <div class="ens-contact-fields">
 @foreach(['first_name'=>'Nombre','last_name'=>'Apellido','phone'=>'Teléfono','email'=>'Email (opcional)'] as $field=>$label)
-<div class="ens-field"><label for="contact-{{ $field }}">{{ $label }}</label><input id="contact-{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone' ? 'tel' : 'text') }}" autocomplete="{{ ['first_name'=>'given-name','last_name'=>'family-name','phone'=>'tel','email'=>'email'][$field] }}" maxlength="{{ $field === 'email' ? 254 : ($field === 'phone' ? 30 : 100) }}" value="{{ old($field,auth()->user()?->{$field}) }}" @required($field !== 'email')></div>
+<div class="ens-field"><label for="contact-{{ $field }}">{{ $label }}</label><input id="contact-{{ $field }}" name="{{ $field }}" type="{{ $field === 'email' ? 'email' : ($field === 'phone' ? 'tel' : 'text') }}" autocomplete="{{ ['first_name'=>'given-name','last_name'=>'family-name','phone'=>'tel','email'=>'email'][$field] }}" maxlength="{{ $field === 'email' ? 254 : ($field === 'phone' ? 30 : 100) }}" value="{{ old($field,auth()->user()?->{$field}) }}" @required($field !== 'email') @error($field) aria-invalid="true" aria-describedby="error-{{ $field }}" @enderror>@error($field)<p id="error-{{ $field }}" class="ens-field-error" role="alert">{{ $message }}</p>@enderror</div>
 @endforeach
 </div>
 @include('storefront.pickup')

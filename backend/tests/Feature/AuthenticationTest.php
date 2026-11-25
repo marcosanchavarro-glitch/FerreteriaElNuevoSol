@@ -16,6 +16,29 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_popup_login_preserves_cart_and_returns_json_without_redirect(): void
+    {
+        $user = User::factory()->create();
+        $cart = ['17-0' => ['product_id' => 17, 'product_variant_id' => null, 'quantity' => '1.000']];
+        $this->withSession(['cart' => $cart])->postJson('/login', ['email' => $user->email, 'password' => 'SoloDesarrollo!2026'])
+            ->assertOk()->assertJson(['authenticated' => true])->assertSessionHas('cart', $cart)->assertSessionHas('password_hash_web');
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_popup_registration_keeps_customer_permissions_and_validation(): void
+    {
+        $this->postJson('/registro', ['first_name' => 'Ana', 'last_name' => 'Prueba', 'email' => 'popup@example.test', 'password' => 'Password2026!', 'password_confirmation' => 'Password2026!', 'role' => 'admin'])
+            ->assertCreated()->assertJson(['authenticated' => true]);
+        $this->assertSame(UserRole::Customer, User::sole()->role);
+    }
+
+    public function test_popup_login_reports_errors_without_authenticating(): void
+    {
+        $user = User::factory()->create();
+        $this->postJson('/login', ['email' => $user->email, 'password' => 'Incorrect2026!'])->assertUnprocessable()->assertJsonValidationErrors('email');
+        $this->assertGuest();
+    }
+
     public static function roles(): array
     {
         return [['admin'], ['seller'], ['customer']];

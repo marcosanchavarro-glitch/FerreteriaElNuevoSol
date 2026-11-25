@@ -10,9 +10,14 @@ use App\Models\HomepageSection;
 use App\Services\Audit\ActivityLogService;
 use App\Services\Catalog\ImageStorage;
 use App\Services\Content\ContentManager;
+use App\Services\Content\Homepage;
+use App\Services\Storefront\CatalogQuery;
+use App\Services\Storefront\ProductPresentation;
+use App\Services\Storefront\PublicCategories;
 use App\Services\Storefront\PublicImages;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +26,29 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContentController extends Controller
 {
+    public function preview(ContentRequest $request, Homepage $homepage, CatalogQuery $catalog, PublicCategories $categories): Response
+    {
+        $record = $this->model($request);
+        Gate::authorize($record->exists ? 'update' : 'create', $record->exists ? $record : $record::class);
+        $record->fill($request->safe()->except(['image', 'max_items', 'confirm_deactivate']));
+        if ($record instanceof HomepageSection) {
+            $record->settings = ['max_items' => (int) ($request->validated('max_items') ?: 6)];
+        }
+        $previewImages = [];
+        if ($record->exists && $record->image_path && app(PublicImages::class)->available($record->image_path, $request->route('kind').'/'.$record->id)) {
+            $previewImages[$request->route('kind').'/'.$record->id] = route('admin.'.$request->route('kind').'.image', $record->id);
+        }
+        if ($image = $request->file('image')) {
+            $previewImages[$request->route('kind').'/'.$record->id] = 'data:'.$image->getMimeType().';base64,'.base64_encode($image->getContent());
+        }
+
+        return response()->view('storefront.home', $homepage->data($catalog, $categories, $record) + [
+            'previewImages' => $previewImages, 'noindex' => true,
+            'categoryRows' => $categories->rows(), 'navCategories' => $categories->all()->whereNull('parent_id'),
+            'presenter' => app(ProductPresentation::class), 'publicImages' => app(PublicImages::class),
+        ])->header('Cache-Control', 'private, no-store')->header('X-Robots-Tag', 'noindex, nofollow');
+    }
+
     private function model(Request $request): HomepageSection|Banner
     {
         abort_unless(in_array($request->route('kind'), ['sections', 'banners'], true), 404);

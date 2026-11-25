@@ -13,6 +13,26 @@ class ProfileSecurityTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_popup_profile_save_uses_validation_without_redirecting(): void
+    {
+        $user = User::factory()->admin()->create();
+        $this->actingAs($user)->patchJson(route('account.update'), $this->profile($user))
+            ->assertOk()->assertJsonPath('message', 'Tus datos fueron guardados.')->assertJsonStructure(['csrf_token']);
+        $this->assertSame('Nuevo', $user->fresh()->first_name);
+        $this->patchJson(route('account.update'), [...$this->profile($user), 'role' => 'customer'])->assertForbidden();
+        $this->assertSame('admin', $user->fresh()->role->value);
+    }
+
+    public function test_popup_password_change_refreshes_csrf_and_preserves_current_session(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user)->withSession(['_token' => 'previous-csrf-token'])->putJson(route('account.password'), [
+            'current_password' => 'SoloDesarrollo!2026', 'password' => 'Replacement2026!', 'password_confirmation' => 'Replacement2026!',
+        ])->assertOk()->assertJsonStructure(['message', 'csrf_token'])->assertJsonPath('csrf_token', fn ($token) => $token !== 'previous-csrf-token');
+        $this->assertTrue(Hash::check('Replacement2026!', $user->fresh()->password));
+        $this->get(route('account.edit'))->assertOk();
+    }
+
     private function profile(User $user): array
     {
         return ['first_name' => 'Nuevo', 'last_name' => 'Apellido', 'phone' => '123456', 'email' => $user->email];

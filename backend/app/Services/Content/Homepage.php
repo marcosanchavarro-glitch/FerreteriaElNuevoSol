@@ -6,6 +6,7 @@ use App\Models\Banner;
 use App\Models\HomepageSection;
 use App\Services\Storefront\CatalogQuery;
 use App\Services\Storefront\PublicCategories;
+use Illuminate\Database\Eloquent\Collection;
 
 class Homepage
 {
@@ -21,19 +22,38 @@ class Homepage
         ];
     }
 
-    public function data(CatalogQuery $catalog, PublicCategories $categories): array
+    public function data(CatalogQuery $catalog, PublicCategories $categories, HomepageSection|Banner|null $draft = null): array
     {
         $sections = HomepageSection::where('active', true)->orderBy('sort_order')->orderBy('id')->get();
-        if ($sections->isEmpty() && ! HomepageSection::exists()) {
+        if ($draft instanceof HomepageSection) {
+            $sections = $sections->reject(fn ($section) => $draft->exists && $section->id === $draft->id);
+            if ($draft->active) {
+                $sections->push($draft);
+            }
+            $sections = $sections->sortBy([['sort_order', 'asc'], ['id', 'asc']])->values();
+        }
+        if ($sections->isEmpty() && ! HomepageSection::exists() && ! $draft instanceof HomepageSection) {
             $sections = collect(self::defaults())->map(fn (array $data, int $i): HomepageSection => new HomepageSection($data + ['active' => true, 'sort_order' => $i]));
         }
         $max = max(1, min(24, (int) $sections->filter(fn ($s) => $s->type->value === 'featured_products')->max(fn ($s) => (int) ($s->settings['max_items'] ?? 6))));
 
+        $banners = Banner::where('active', true)->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', now()))->orderBy('sort_order')->orderBy('id')->get();
+        if ($draft instanceof Banner) {
+            $banners = $banners->reject(fn ($banner) => $draft->exists && $banner->id === $draft->id);
+            if ($draft->active && (! $draft->starts_at || $draft->starts_at->lte(now())) && (! $draft->ends_at || $draft->ends_at->gt(now()))) {
+                $banners->push($draft);
+            }
+            $banners = $banners->sortBy([['sort_order', 'asc'], ['id', 'asc']])->values();
+        }
+
+        $featuredCategories = new Collection($categories->all()->where('featured', true)->values()->all());
+        $featuredCategories->load(['products' => fn ($query) => $query->where('status', 'published')->whereHas('images')->orderBy('products.id')->limit(1)->with(['images' => fn ($images) => $images->orderByDesc('is_primary')->orderBy('sort_order')->orderBy('id')->limit(1)])]);
+
         return [
             'sections' => $sections,
-            'banners' => Banner::where('active', true)->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>', now()))->orderBy('sort_order')->orderBy('id')->get(),
+            'banners' => $banners,
             'products' => $catalog->base($categories->all()->keys()->all())->where('featured', true)->orderByDesc('id')->limit($max)->get(),
-            'featuredCategories' => $categories->all()->where('featured', true),
+            'featuredCategories' => $featuredCategories,
         ];
     }
 }

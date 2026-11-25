@@ -112,6 +112,7 @@ if (editorMain) {
 // Existing endpoints remain available without JavaScript.
 document.addEventListener('submit', event => {
  const form = event.target;
+ if (event.defaultPrevented) return;
  if (form.action.endsWith('/quick')) { try { sessionStorage.setItem('ens.product-context',JSON.stringify({url:location.href,scroll:scrollY})); } catch {} }
  if (form.dataset.confirm && !confirm(form.dataset.confirm)) { event.preventDefault(); return; }
  if (!form.closest('.admin-workspace') || form.matches('[data-editor-main]') || form.closest('[data-editor-panel]')) return;
@@ -120,8 +121,28 @@ document.addEventListener('submit', event => {
  setTimeout(() => { form.querySelectorAll('button[type=submit],button:not([type])').forEach(button => { button.disabled = true; }); },0);
 });
 window.addEventListener('pageshow', event => { if (event.persisted) document.querySelectorAll('form[data-submitted]').forEach(form => { delete form.dataset.submitted; form.querySelectorAll('button').forEach(button => { button.disabled = false; }); }); });
-const whatsappNumber = document.querySelector('input[name="whatsapp_number"]');
-whatsappNumber?.addEventListener('input', () => { const preview = document.querySelector('[data-whatsapp-preview]'); if (preview) preview.textContent = 'Destino propuesto: '+ (/^[1-9][0-9]{7,14}$/.test(whatsappNumber.value) ? '+'+whatsappNumber.value : 'Número vacío o formato inválido') + '. Se aplica al guardar.'; });
+const ordersContact = document.querySelector('[name="whatsapp_orders_contact"]');
+if (ordersContact) {
+ const form = ordersContact.form;
+ const renderContacts = () => {
+  const destinations = [];
+  ['orders','inquiries'].forEach(purpose => {
+   const choice = form.elements.namedItem('whatsapp_' + (purpose === 'orders' ? 'orders_contact' : 'inquiries_contact'));
+   const custom = form.elements.namedItem(purpose === 'orders' ? 'whatsapp_number' : 'whatsapp_inquiries_number');
+   custom.closest('.field').hidden = choice.value !== 'custom' && !custom.closest('.field').querySelector('.field-error');
+   ['primary','secondary','tertiary'].forEach((key,index) => {
+    const number = form.elements.namedItem('contact_' + key + '_number').value;
+    choice.querySelector('option[value="'+key+'"]').textContent = ['Primario','Secundario','Terciario'][index] + (number ? ' · +' + number : ' · sin configurar');
+   });
+   const number = choice.value === 'custom' ? custom.value : form.elements.namedItem('contact_' + choice.value + '_number').value;
+   destinations.push((purpose === 'orders' ? 'Pedidos: ' : 'Consultas: ') + (/^[1-9][0-9]{7,14}$/.test(number) ? '+' + number : 'Sin configurar o formato inválido'));
+  });
+  document.querySelector('[data-whatsapp-preview]').textContent = destinations.join(' · ') + '. Los cambios se aplican al guardar.';
+ };
+ form.addEventListener('input',renderContacts);
+ form.addEventListener('change',renderContacts);
+ renderContacts();
+}
 const filterPanel = document.querySelector('.product-filter-panel');
 if (filterPanel && !location.search) filterPanel.open = matchMedia('(min-width:701px)').matches;
 document.querySelector('[data-close-admin-menu]')?.addEventListener('click', () => { adminMenu.open = false; adminMenu.querySelector('summary').focus(); });
@@ -152,3 +173,151 @@ matchMedia('(min-width:901px)').addEventListener('change', () => {
  document.querySelector('main').inert = open;
  document.querySelector('body>header').inert = open;
 });
+
+// Restore only the form position; never persist entered customer data or credentials.
+const contextForms = document.querySelectorAll('form[data-preserve-context]');
+contextForms.forEach(form => {
+ const key = 'ens.form-position:' + location.pathname;
+ try {
+  const saved = JSON.parse(sessionStorage.getItem(key) || 'null');
+  sessionStorage.removeItem(key);
+  if (saved && Number.isFinite(saved.scroll)) requestAnimationFrame(() => {
+   const target = document.getElementById(saved.focus);
+   target?.focus({preventScroll:true});
+   scrollTo(0,saved.scroll);
+  });
+ } catch {}
+ form.addEventListener('submit', () => {
+  try { sessionStorage.setItem(key, JSON.stringify({scroll:scrollY,focus:document.activeElement.id || ''})); } catch {}
+ });
+});
+const cmsEditor = document.querySelector('[data-cms-editor]');
+if (cmsEditor) {
+ const panel = document.querySelector('.cms-live-preview');
+ const frame = panel.querySelector('[data-cms-frame]');
+ const status = panel.querySelector('[data-cms-status]');
+ const errors = panel.querySelector('[data-cms-preview-errors]');
+ const refresh = panel.querySelector('[data-cms-refresh]');
+ const save = cmsEditor.querySelector('#cms-save');
+ let dirty = false, saving = false, previewing = false, revision = 0;
+ const initialLabel = save.textContent;
+ const updateFields = () => {
+  const limit = cmsEditor.elements.namedItem('max_items');
+  if (limit) limit.closest('.field').hidden = !['featured_products','featured_categories'].includes(cmsEditor.elements.namedItem('type').value);
+ };
+ const changed = () => { dirty = true; revision++; status.textContent = 'Cambios pendientes. Actualizá la vista previa y guardá cuando estés conforme.'; updateFields(); };
+ cmsEditor.addEventListener('input',changed);
+ cmsEditor.addEventListener('change',changed);
+ updateFields();
+ window.addEventListener('beforeunload', event => { if (dirty && !saving) { event.preventDefault(); event.returnValue = ''; } });
+ // Other forms on this page (for example image removal) must not discard the draft silently.
+ document.addEventListener('submit', event => {
+  if (event.target !== cmsEditor && dirty && !confirm('Hay cambios sin guardar. ¿Querés descartarlos y continuar?')) event.preventDefault();
+ }, true);
+ cmsEditor.addEventListener('submit', event => {
+  if (saving || event.defaultPrevented) { event.preventDefault(); return; }
+  saving = true;
+  cmsEditor.setAttribute('aria-busy','true');
+  save.disabled = true;
+  save.textContent = 'Guardando…';
+  status.textContent = 'Guardando. Esperá la confirmación del servidor.';
+ });
+ window.addEventListener('pageshow', () => { saving = false; save.disabled = false; save.textContent = initialLabel; cmsEditor.removeAttribute('aria-busy'); });
+ const resizePreview = () => {
+  const width = panel.querySelector('#cms-width').value === 'mobile' ? 390 : 1280;
+  frame.style.width = width + 'px';
+  frame.style.zoom = Math.min(1,frame.parentElement.clientWidth / width);
+ };
+ panel.querySelector('#cms-width').addEventListener('change',resizePreview);
+ new ResizeObserver(resizePreview).observe(frame.parentElement);
+ resizePreview();
+ const preview = async () => {
+  if (previewing || !cmsEditor.reportValidity()) return;
+  previewing = true; refresh.disabled = true; errors.hidden = true;
+  const sentRevision = revision;
+  status.textContent = 'Preparando vista previa sin guardar…';
+  frame.setAttribute('aria-busy','true');
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(),20000);
+  try {
+   const data = new FormData(cmsEditor); data.delete('_method');
+   const response = await fetch(cmsEditor.dataset.previewUrl,{method:'POST',body:data,credentials:'same-origin',headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'},signal:controller.signal});
+   if (!response.ok || response.redirected) {
+    if (response.status === 422) {
+     const payload = await response.json();
+     throw new Error(Object.values(payload.errors || {}).flat().join(' ') || 'Revisá los campos.');
+    }
+    throw new Error(response.status === 419 || response.status === 401 || response.redirected ? 'La sesión venció. Guardá una copia de tus textos y volvé a ingresar.' : 'No se pudo preparar la vista previa. Intentá nuevamente.');
+   }
+   frame.srcdoc = await response.text();
+   status.textContent = revision === sentRevision ? 'Vista previa actualizada. No se guardó ningún cambio.' : 'La vista previa quedó desactualizada: hay cambios posteriores. Volvé a actualizarla.';
+  } catch (error) {
+   errors.textContent = error.name === 'AbortError' ? 'La vista previa tardó demasiado. Intentá nuevamente.' : error.message;
+   errors.hidden = false; status.textContent = 'No se pudo actualizar la vista previa. Tus cambios siguen en el formulario.';
+  } finally { clearTimeout(timeout); previewing = false; refresh.disabled = false; frame.removeAttribute('aria-busy'); }
+ };
+ refresh.addEventListener('click',preview);
+ if (document.querySelector('.errors')) { dirty = true; status.textContent = 'No se guardó. Corregí los errores indicados y volvé a intentar.'; }
+ else if (document.querySelector('.notice')) status.textContent = 'Guardado correctamente.';
+ preview();
+}
+
+const locationForm = document.querySelector('[data-settings-form]');
+if (locationForm) {
+ const previewLink = document.querySelector('[data-maps-link-preview]');
+ const previewText = document.querySelector('[data-location-preview]');
+ const previewStatus = document.querySelector('[data-location-preview-status]');
+ const mapsPattern = /^https:\/\/(?:(?:www\.)?google\.com(?:\.ar)?\/maps(?:[/?#]|$)|maps\.google\.com\/|maps\.app\.goo\.gl\/|goo\.gl\/maps\/)[^\s]*$/;
+ const updateLocationPreview = () => {
+  previewText.textContent = ['business_name','pickup_address','locality','province','postal_code'].map(name => locationForm.elements.namedItem(name).value.trim()).filter(Boolean).join(' · ');
+  const url = locationForm.elements.namedItem('maps_url').value.trim();
+  let valid = mapsPattern.test(url);
+  if (valid) {
+   try { valid = ![...new URL(url).searchParams.keys()].some(key => ['key','api_key','apikey','token','access_token','signature'].includes(key.toLowerCase().split('[')[0])); }
+   catch { valid = false; }
+  }
+  previewLink.hidden = !valid;
+  if (valid) previewLink.href = url; else previewLink.removeAttribute('href');
+  previewStatus.textContent = valid ? 'Enlace propuesto listo para revisar. Los cambios se aplican al guardar.' : 'Ingresá un enlace HTTPS válido de Google Maps. No se guarda hasta confirmar.';
+ };
+ locationForm.addEventListener('input',updateLocationPreview);
+ updateLocationPreview();
+ const save = locationForm.querySelector('#settings-save');
+ const savedLabel = save.textContent;
+ const saveStatus = document.createElement('p');
+ saveStatus.setAttribute('role','status');
+ locationForm.append(saveStatus);
+ locationForm.addEventListener('submit', event => {
+  if (locationForm.dataset.settingsBusy) { event.preventDefault(); return; }
+  locationForm.dataset.settingsBusy = '1';
+  locationForm.setAttribute('aria-busy','true');
+  save.disabled = true;
+  save.textContent = 'Guardando configuración…';
+  saveStatus.textContent = 'Esperá la confirmación del servidor.';
+ });
+ window.addEventListener('pageshow', () => {
+  delete locationForm.dataset.settingsBusy;
+  locationForm.removeAttribute('aria-busy');
+  save.disabled = false;
+  save.textContent = savedLabel;
+  saveStatus.textContent = '';
+ });
+}
+
+// Remember listing context within this tab, never credentials or order bodies.
+const orderListing = document.querySelector('[data-order-listing]');
+if (orderListing) {
+ try {
+  const previous = JSON.parse(sessionStorage.getItem('ens.orders-return') || 'null');
+  if (previous?.url === location.href && Number.isFinite(previous.scroll)) requestAnimationFrame(() => { scrollTo(0,previous.scroll); document.querySelector(`[data-order-open="${Number(previous.id)}"]`)?.focus({preventScroll:true}); });
+ } catch {}
+ orderListing.addEventListener('click',event => {
+  const link = event.target.closest('[data-order-open]');
+  if (link) try { sessionStorage.setItem('ens.orders-return',JSON.stringify({url:location.href,scroll:scrollY,id:Number(link.dataset.orderOpen)})); } catch {}
+ });
+}
+const orderReturn = document.querySelector('[data-order-return]');
+if (orderReturn) try {
+ const previous = JSON.parse(sessionStorage.getItem('ens.orders-return') || 'null');
+ if (previous) { const url = new URL(previous.url); if (url.origin === location.origin && url.pathname === '/admin/orders') orderReturn.href = url.href; }
+} catch {}

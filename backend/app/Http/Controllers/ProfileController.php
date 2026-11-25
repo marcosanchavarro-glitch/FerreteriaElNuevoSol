@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ChangePasswordRequest;
 use App\Http\Requests\ProfileRequest;
 use App\Support\AccountSession;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -16,13 +17,13 @@ class ProfileController extends Controller
 {
     public function edit(Request $request): View
     {
-        return view($request->user()->can('access-admin') ? 'account.staff-profile' : 'account.edit', [
+        return view($request->routeIs('admin.profile.edit') ? 'account.staff-profile' : 'account.edit', [
             'user' => $request->user(),
             'recentOrders' => $request->user()->can('access-account') ? $request->user()->orders()->latest('id')->limit(5)->get() : collect(),
         ]);
     }
 
-    public function update(ProfileRequest $request): RedirectResponse
+    public function update(ProfileRequest $request): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $emailChanged = $user->email !== $request->input('email');
@@ -33,10 +34,14 @@ class ProfileController extends Controller
         $user->fill($request->safe()->only(['first_name', 'last_name', 'phone', 'email']));
         $user->save();
 
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Tus datos fueron guardados.', 'csrf_token' => csrf_token()])->header('Cache-Control', 'no-store');
+        }
+
         return back()->with('status', 'Tus datos fueron guardados.');
     }
 
-    public function password(ChangePasswordRequest $request): RedirectResponse
+    public function password(ChangePasswordRequest $request): RedirectResponse|JsonResponse
     {
         $user = $request->user();
         $user->password = Hash::make($request->validated('password'));
@@ -45,6 +50,10 @@ class ProfileController extends Controller
         Password::deleteToken($user);
         $request->session()->regenerate();
         AccountSession::refreshPasswordHash($request, $user);
+
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Contraseña actualizada. Las demás sesiones deberán volver a ingresar.', 'csrf_token' => csrf_token()])->header('Cache-Control', 'no-store');
+        }
 
         return back()->with('status', 'Contraseña actualizada. Las demás sesiones deberán volver a ingresar.');
     }

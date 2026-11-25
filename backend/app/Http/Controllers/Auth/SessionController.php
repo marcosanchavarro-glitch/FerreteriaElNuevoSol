@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Support\AccountSession;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,7 @@ class SessionController extends Controller
         return view('auth.login');
     }
 
-    public function store(LoginRequest $request): RedirectResponse
+    public function store(LoginRequest $request): RedirectResponse|JsonResponse
     {
         $key = 'login:'.hash('sha256', $request->string('email')->toString().'|'.$request->ip());
         if (RateLimiter::tooManyAttempts($key, 5)) {
@@ -32,6 +33,10 @@ class SessionController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
         AccountSession::refreshPasswordHash($request, $request->user());
+
+        if ($request->expectsJson()) {
+            return response()->json(['authenticated' => true]);
+        }
 
         return redirect()->route($request->user()->can('access-admin') ? 'admin.home' : 'account.edit');
     }

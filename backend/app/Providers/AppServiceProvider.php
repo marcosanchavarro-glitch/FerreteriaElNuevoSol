@@ -64,7 +64,7 @@ class AppServiceProvider extends ServiceProvider
             fn (User $user, string $token): string => rtrim(config('app.url'), '/').route('password.reset', ['token' => $token, 'email' => $user->getEmailForPasswordReset()], false)
         );
         Gate::define('access-admin', fn (User $user): bool => $user->active && in_array($user->role, [UserRole::Admin, UserRole::Seller], true));
-        Gate::define('access-account', fn (User $user): bool => $user->active && $user->role === UserRole::Customer);
+        Gate::define('access-account', fn (User $user): bool => $user->active);
         Gate::policy(HomepageSection::class, ContentPolicy::class);
         Gate::policy(Banner::class, ContentPolicy::class);
         Gate::define('view-activity', fn (User $user): bool => $user->active && $user->role === UserRole::Admin);

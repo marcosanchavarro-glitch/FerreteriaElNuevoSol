@@ -1,0 +1,9 @@
+/* Supplied brand manual p. 3. Semantic colors are UI colors, not brand colors. */
+:root {
+ --ens-navy:#263372; --ens-navy-2:var(--ens-navy); --ens-orange:#f08050; --ens-yellow:var(--ens-orange); --ens-brand-gray:#706f6f;
+ --ens-ink:#182238; --ens-muted:#526078; --ens-canvas:#f7f8fb; --ens-surface:#fff; --ens-soft:#fff2ec; --ens-line:#dce1ea; --ens-control-line:#7985a1;
+ --ens-success:#17552a; --ens-success-surface:#e2f5e6; --ens-error:#862f20; --ens-error-surface:#fff0ed; --ens-warning:#75400d; --ens-warning-surface:#fff4dc; --ens-info-surface:#e9edf5; --ens-green:var(--ens-success);
+ --ens-font:"Helvetica Neue",Helvetica,Arial,sans-serif; --ens-text-small:.875rem; --ens-text-body:1rem; --ens-text-title:clamp(1.75rem,3vw,2.75rem);
+ --ens-space-1:.25rem; --ens-space-2:.5rem; --ens-space-3:.75rem; --ens-space-4:1rem; --ens-space-5:1.5rem; --ens-space-6:2rem; --ens-space-7:3rem;
+ --ens-radius-sm:4px; --ens-radius:8px; --ens-shadow:0 4px 16px #2633720a; --ens-control-height:44px; --ens-duration:160ms; --ens-ease:ease-out;
+}

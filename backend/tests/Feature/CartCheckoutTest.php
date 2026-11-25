@@ -17,6 +17,19 @@ class CartCheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_drawer_uses_existing_cart_rules_for_add_update_and_remove(): void
+    {
+        $product = $this->product();
+        $this->postJson(route('cart.store'), ['product_id' => $product->id, 'quantity' => '2'])
+            ->assertOk()->assertJsonPath('count', 1)->assertJsonPath('message', 'Producto agregado al carrito.');
+        $this->getJson(route('cart.index'))->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertJsonStructure(['html', 'count', 'message']);
+        $response = $this->patchJson(route('cart.update', $product->id.'-0'), ['quantity' => '3'])->assertOk();
+        $this->assertStringContainsString('$ 300,03', $response->json('html'));
+        $this->postJson(route('cart.store'), ['product_id' => $product->id, 'quantity' => '-1'])->assertUnprocessable()->assertJsonValidationErrors('quantity');
+        $this->deleteJson(route('cart.destroy', $product->id.'-0'))->assertOk()->assertJsonPath('count', 0);
+        $this->assertStringContainsString('Tu carrito está vacío.', $this->getJson(route('cart.index'))->json('html'));
+    }
+
     private function product(array $attributes = []): Product
     {
         return Product::factory()->create($attributes + ['status' => 'published', 'price' => 10001, 'stock' => '20.000']);
@@ -30,6 +43,29 @@ class CartCheckoutTest extends TestCase
     private function contact(): array
     {
         return ['first_name' => 'Ana', 'last_name' => 'Pérez', 'phone' => '+54 11 5555-1234', 'email' => null, 'token' => session('checkout.token')];
+    }
+
+    public function test_confirmation_registers_one_order_before_offering_whatsapp_without_claiming_delivery(): void
+    {
+        config(['shop.whatsapp_number' => '5491155551234']);
+        $product = Product::factory()->variable()->create(['status' => 'published']);
+        $variant = ProductVariant::factory()->create(['product_id' => $product->id, 'name' => 'Caja & tornillos', 'price' => 1234, 'stock' => '10', 'active' => true]);
+        $this->add($product, '2', $variant->id);
+        $this->get(route('checkout.create'))->assertSee('data-checkout-form', false);
+        $contact = $this->contact();
+        $response = $this->post(route('checkout.store'), $contact)->assertRedirect();
+        $this->assertDatabaseCount('orders', 1);
+        $order = Order::sole();
+        $url = app(WhatsAppOrder::class)->url($order);
+        parse_str(parse_url($url, PHP_URL_QUERY), $query);
+        $this->assertStringContainsString($order->order_number, $query['text']);
+        $this->assertStringContainsString('Caja & tornillos', $query['text']);
+        $this->assertStringContainsString('$ 24,68', $query['text']);
+        $this->get($response->headers->get('Location'))->assertOk()->assertSee('Continuar en WhatsApp')->assertSee('ni confirma su recepción');
+        $this->post(route('checkout.store'), $contact)->assertRedirect($response->headers->get('Location'));
+        $this->get($response->headers->get('Location'))->assertOk();
+        $this->assertDatabaseCount('orders', 1);
+        $this->assertSame('received', $order->fresh()->status->value);
     }
 
     public function test_simple_accumulates_updates_and_removes(): void
